@@ -90,6 +90,10 @@ tr.errata input.num { border-color: var(--rosso); background: #fff4f2; }
 .rapido-esito { grid-column: 1 / -1; font-weight: 600; font-size: .95rem; color: var(--verde-scuro); }
 .rapido-esito.errore { color: var(--rosso); }
 .rapido-esito:empty { display: none; }
+#tab-capacita { max-width: 560px; }
+.sez-lista { display: inline-block; padding: 7px 2px; font-weight: 600; }
+.sez-lista small { font-weight: 400; color: var(--tenue); }
+#corpo-capacita tr.altre td { border-top: 1px dashed #d9d1bf; }
 .sotto-tabella { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
 .totali { color: var(--tenue); font-size: .95rem; }
 .lista-vuota { color: var(--tenue); padding: 14px 6px; }
@@ -215,6 +219,8 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
   #corpo-tavole td:nth-child(5) { grid-column: 3; grid-row: 1; }
   #corpo-tavole td:nth-child(3) { grid-column: 1; grid-row: 2; }
   #corpo-tavole td:nth-child(4) { grid-column: 2 / span 2; grid-row: 2; }
+  #corpo-capacita tr { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 2.4em; }
+  #corpo-capacita tr.altre td { border-top: none; }
   /* piano di taglio */
   .riquadri { gap: 8px; }
   .riquadro { flex: 1 1 130px; padding: 6px 10px; }
@@ -282,9 +288,23 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
 </div>
 
 <main>
-  <!-- 1 · tavole di oggi e macchina -->
+  <!-- 1 · quante tavole stanno sulla macchina -->
+  <section class="scheda solo-schermo" id="sez-macchina">
+    <h2><span class="numero">1</span> Quante tavole stanno sulla macchina</h2>
+    <p class="guida">Quante tavole mettete sulla macchina e tagliate insieme: dipende dalla sezione (es. 2 colonne da 6 = 12; 1 = una alla volta).
+      Le sezioni dei pezzi da tagliare compaiono qui da sole: basta scrivere il numero una volta, poi resta memorizzato.</p>
+    <table class="griglia" id="tab-capacita">
+      <thead><tr><th>Sezione</th><th>Tavole insieme</th><th></th></tr></thead>
+      <tbody id="corpo-capacita"></tbody>
+    </table>
+    <div class="sotto-tabella">
+      <button class="btn" id="btn-piu-capacita" type="button">+ Aggiungi sezione</button>
+    </div>
+  </section>
+
+  <!-- 2 · tavole di oggi e macchina -->
   <section class="scheda solo-schermo" id="sez-tavole">
-    <h2><span class="numero">1</span> Tavole di oggi e macchina</h2>
+    <h2><span class="numero">2</span> Tavole di oggi e macchina</h2>
     <div class="due">
       <div>
         <h3 class="sotto">Tavole grezze disponibili</h3>
@@ -313,11 +333,6 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
             <small>Legno perso a ogni taglio.</small>
           </div>
           <div class="campo">
-            <label for="par-pacco">Tavole per pacco</label>
-            <input type="text" class="num" id="par-pacco" inputmode="numeric">
-            <small>Quante ne tagliate insieme (es. 2 colonne da 6 = 12). 1 = una alla volta.</small>
-          </div>
-          <div class="campo">
             <label for="par-sfrido">Sfrido riutilizzabile da (mm)</label>
             <input type="text" class="num" id="par-sfrido" inputmode="numeric">
             <small>Gli avanzi da questa misura in su sono recuperabili.</small>
@@ -341,9 +356,9 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
     </div>
   </section>
 
-  <!-- 2 · pezzi da tagliare -->
+  <!-- 3 · pezzi da tagliare -->
   <section class="scheda solo-schermo" id="sez-pezzi">
-    <h2><span class="numero">2</span> Pezzi da tagliare</h2>
+    <h2><span class="numero">3</span> Pezzi da tagliare</h2>
     <div class="rapido">
       <div><label for="rap-progetto">Progetto</label><input type="text" id="rap-progetto" list="dl-progetti" placeholder="es. 9"></div>
       <div><label for="rap-sezione">Sezione</label><input type="text" id="rap-sezione" list="dl-sezioni" placeholder="es. 100×50"></div>
@@ -373,9 +388,9 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
     <div id="messaggio" role="status" aria-live="polite"></div>
   </div>
 
-  <!-- 3 · piano di taglio -->
+  <!-- 4 · piano di taglio -->
   <section class="scheda" id="sez-piano">
-    <h2><span class="numero">3</span> Piano di taglio</h2>
+    <h2><span class="numero">4</span> Piano di taglio</h2>
     <div id="piano"></div>
   </section>
   <p class="guida solo-schermo" style="text-align:center">Funziona senza internet. La lista resta su questo dispositivo; per portarla altrove usa «Salva lista…».</p>
@@ -1639,6 +1654,26 @@ function creaLogica() {
     return '';
   }
 
+  /* Due sezioni sono la stessa tavola anche scritte al contrario: 100×50 = 50×96 */
+  function stessaSezione(a, b) {
+    const x = normSezione(a), y = normSezione(b);
+    if (!x || !y) return false;
+    return x === y || x === y.split('×').reverse().join('×');
+  }
+  /* Un numero di tavole valido (intero, almeno 1), altrimenti 0 */
+  function tavoleValide(v) { const n = numero(v); return n >= 1 && Math.round(n) === n ? n : 0; }
+  /* Quante tavole stanno insieme sulla macchina per una sezione (riquadro 1);
+     se la sezione non è indicata, vale il numero di "tutte le altre sezioni" */
+  function voceCapacita(st, sezione) {
+    const voci = st.capacita || [];
+    for (let i = 0; i < voci.length; i++) if (stessaSezione(voci[i].sezione, sezione)) return voci[i];
+    return null;
+  }
+  function capacitaSezione(st, sezione) {
+    const voce = voceCapacita(st, sezione);
+    return (voce && tavoleValide(voce.tavole)) || Math.max(1, Math.round(Number(st.parametri.pacco) || 1));
+  }
+
   /* ------------------------------------------------------------------
      Divide la lista in gruppi (stessa sezione e stesso trattamento HT:
      non si possono mescolare sulla stessa tavola) e sceglie per ogni
@@ -1670,9 +1705,14 @@ function creaLogica() {
       const apposta = adatte.filter(function (t) { return t.sezione !== '' && t.sezione === g.sezione; });
       const scelte = apposta.length ? apposta : adatte.filter(function (t) { return t.sezione === ''; });
       g.tavole = scelte.map(function (t) { return { lung: t.lung, qta: t.qta }; });
+      g.pacco = capacitaSezione(st, g.sezione);          // tavole che stanno insieme sulla macchina
+      const voce = voceCapacita(st, g.sezione);
+      if (voce && testo(voce.tavole) !== '' && !tavoleValide(voce.tavole)) {
+        avvisi.push({ righe: [], testo: nomeGruppo(g) + ': «' + testo(voce.tavole) + '» non è un numero di tavole valido (riquadro 1): uso ' + g.pacco + ', come per le altre sezioni.' });
+      }
       const tutte = g.righe.map(function (r) { return r.idx; });
       if (!g.tavole.length) {
-        avvisi.push({ righe: tutte, testo: nomeGruppo(g) + ': nessuna tavola indicata nel riquadro 1 per questi pezzi (' + g.righe.length + ' righe escluse dal calcolo).' });
+        avvisi.push({ righe: tutte, testo: nomeGruppo(g) + ': nessuna tavola indicata nel riquadro 2 per questi pezzi (' + g.righe.length + ' righe escluse dal calcolo).' });
         return;
       }
       const utile = Math.max.apply(null, g.tavole.map(function (t) { return t.lung; })) - par.rifilo;
@@ -1694,7 +1734,7 @@ function creaLogica() {
     return {
       pezzi: g.righe.map(function (r) { return { lung: r.lung, qta: r.qta }; }),
       tavole: g.tavole, lama: par.lama, rifilo: par.rifilo, sfridoMin: par.sfridoMin,
-      pacco: par.pacco, tempoMs: Math.round(par.tempo * 1000)
+      pacco: g.pacco || par.pacco, tempoMs: Math.round(par.tempo * 1000)
     };
   }
 
@@ -1796,7 +1836,7 @@ function creaLogica() {
   /* Mette insieme il risultato del motore e le etichette dei progetti */
   function componiGruppo(g, esito, par) {
     const elenco = [{ schemi: esito.schemi }].concat(esito.alternative || []);
-    const varianti = elenco.map(function (v) { return assegnaProgetti(v.schemi, g.righe, par.pacco); });
+    const varianti = elenco.map(function (v) { return assegnaProgetti(v.schemi, g.righe, g.pacco || par.pacco); });
     const richiesta = new Map();
     g.righe.forEach(function (r) {
       const k = r.progetto + '\u0001' + r.lung;
@@ -1804,7 +1844,7 @@ function creaLogica() {
       if (e) e.qta += r.qta; else richiesta.set(k, { progetto: r.progetto, lung: r.lung, qta: r.qta });
     });
     return {
-      chiave: g.chiave, sezione: g.sezione, ht: g.ht, tavole: g.tavole,
+      chiave: g.chiave, sezione: g.sezione, ht: g.ht, tavole: g.tavole, pacco: g.pacco || par.pacco,
       varianti: varianti.map(function (v) { return { schemi: v.schemi }; }), scelta: 0,
       mancanti: varianti[0].mancanti,
       richiesta: Array.from(richiesta.values()).sort(function (a, b) { return confronta(a.progetto, b.progetto) || b.lung - a.lung; }),
@@ -1879,6 +1919,7 @@ function creaLogica() {
   }
 
   return {
+    stessaSezione: stessaSezione, tavoleValide: tavoleValide, capacitaSezione: capacitaSezione,
     numero: numero, normSezione: normSezione, testo: testo, confronta: confronta, lettera: lettera, nomeGruppo: nomeGruppo,
     analizzaTesto: analizzaTesto, difettoRiga: difettoRiga, preparaGruppi: preparaGruppi, datiMotore: datiMotore,
     assegnaProgetti: assegnaProgetti, componiGruppo: componiGruppo, statVariante: statVariante,
@@ -1901,6 +1942,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
       app: 'PianoTagli', versione: 1,
       parametri: { lama: 4, rifilo: 10, sfridoMin: 300, quotaMax: 5000, pacco: 12, tempo: 3 },
       tavole: [{ lung: 4060, qta: '', sezione: '', tipo: 'tutti' }],
+      capacita: [],                          // tavole insieme sulla macchina, per sezione: { sezione, tavole }
       pezzi: [],
       rapido: { progetto: '', sezione: '', ht: false },
       piano: null, pianoVecchio: false, stampaCompatta: false
@@ -1943,6 +1985,11 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
         return { lung: t.lung == null ? '' : t.lung, qta: t.qta == null ? '' : t.qta, sezione: String(t.sezione || ''), tipo: ['tutti', 'ht', 'noht'].indexOf(t.tipo) >= 0 ? t.tipo : 'tutti' };
       });
     }
+    if (Array.isArray(o.capacita)) {
+      n.capacita = o.capacita.filter(function (c) { return c && typeof c === 'object'; }).map(function (c) {
+        return { sezione: String(c.sezione == null ? '' : c.sezione), tavole: c.tavole == null ? '' : String(c.tavole) };
+      });
+    }
     n.pezzi = o.pezzi.map(function (r) {
       return { progetto: String(r.progetto == null ? '' : r.progetto), sezione: String(r.sezione == null ? '' : r.sezione), ht: !!r.ht, qta: r.qta == null ? '' : r.qta, lung: r.lung == null ? '' : r.lung };
     });
@@ -1959,8 +2006,40 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     ricorda();
   }
 
-  /* ====================== riquadro 1: tavole e macchina ====================== */
-  const CAMPI = { 'par-rifilo': 'rifilo', 'par-lama': 'lama', 'par-pacco': 'pacco', 'par-sfrido': 'sfridoMin', 'par-quota': 'quotaMax' };
+  /* ====================== riquadro 1: quante tavole stanno sulla macchina ====================== */
+  /* Prima le sezioni già scritte, poi quelle dei pezzi da tagliare che non hanno ancora un numero */
+  function righeCapacita() {
+    const righe = stato.capacita.map(function (c, i) { return { i: i, sezione: c.sezione, tavole: c.tavole }; });
+    const nuove = [];
+    stato.pezzi.forEach(function (r) {
+      const s = L.normSezione(r.sezione);
+      if (!s || nuove.indexOf(s) >= 0) return;
+      if (stato.capacita.some(function (c) { return L.stessaSezione(c.sezione, s); })) return;
+      nuove.push(s);
+    });
+    nuove.sort(L.confronta).forEach(function (s) { righe.push({ i: -1, sezione: s, tavole: '' }); });
+    return righe;
+  }
+  function rigaCapacitaHtml(r) {
+    const pred = stato.parametri.pacco;
+    const sbagliata = L.testo(r.tavole) !== '' && !L.tavoleValide(r.tavole);
+    const dalla = r.i < 0;                       // sezione arrivata dai pezzi, ancora senza numero
+    return '<tr data-i="' + r.i + '" data-sezione="' + esc(r.sezione) + '"' + (sbagliata ? ' class="errata" title="numero di tavole non valido: si usa ' + pred + '"' : '') + '>' +
+      '<td data-et="Sezione">' + (dalla ? '<span class="sez-lista">' + esc(r.sezione) + ' <small>(dai pezzi)</small></span>' :
+        '<input type="text" data-c="sezione" list="dl-sezioni" placeholder="es. 100×50" value="' + esc(r.sezione) + '" aria-label="Sezione">') + '</td>' +
+      '<td data-et="Tavole insieme"><input type="text" class="num" data-c="tavole" inputmode="numeric" placeholder="' + esc(pred) + '" value="' + esc(r.tavole) + '" aria-label="Tavole insieme"></td>' +
+      '<td class="via">' + (dalla ? '' : '<button class="btn-x" type="button" data-via="capacita" title="Togli questa sezione" aria-label="Togli questa sezione">✕</button>') + '</td></tr>';
+  }
+  function disegnaCapacita(forza) {
+    const corpo = $('corpo-capacita');
+    if (!forza && corpo.contains(document.activeElement)) return;      // non si ridisegna mentre si scrive lì
+    corpo.innerHTML = righeCapacita().map(rigaCapacitaHtml).join('') +
+      '<tr class="altre"><td data-et="Sezione"><span class="sez-lista">Tutte le altre sezioni</span></td>' +
+      '<td data-et="Tavole insieme"><input type="text" class="num" data-c="predefinito" inputmode="numeric" value="' + esc(stato.parametri.pacco) + '" aria-label="Tavole insieme per tutte le altre sezioni"></td><td></td></tr>';
+  }
+
+  /* ====================== riquadro 2: tavole di oggi e macchina ====================== */
+  const CAMPI = { 'par-rifilo': 'rifilo', 'par-lama': 'lama', 'par-sfrido': 'sfridoMin', 'par-quota': 'quotaMax' };
   function disegnaParametri() {
     Object.keys(CAMPI).forEach(function (id) { $(id).value = stato.parametri[CAMPI[id]]; });
     $('par-tempo').value = String(stato.parametri.tempo);
@@ -1989,7 +2068,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     }).join('');
   }
 
-  /* ====================== riquadro 2: pezzi da tagliare ====================== */
+  /* ====================== riquadro 3: pezzi da tagliare ====================== */
   function rigaHtml(r, i) {
     const dif = L.difettoRiga(r, stato.parametri);
     return '<tr data-i="' + i + '"' + (dif ? ' class="errata" title="' + esc(dif) + '"' : '') + '>' +
@@ -2020,8 +2099,10 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     const sez = new Set(), prog = new Set();
     stato.pezzi.forEach(function (r) { const s = L.normSezione(r.sezione); if (s) sez.add(s); const p = L.testo(r.progetto); if (p) prog.add(p); });
     stato.tavole.forEach(function (t) { const s = L.normSezione(t.sezione); if (s) sez.add(s); });
+    stato.capacita.forEach(function (c) { const s = L.normSezione(c.sezione); if (s) sez.add(s); });
     $('dl-sezioni').innerHTML = Array.from(sez).sort(L.confronta).map(function (s) { return '<option value="' + esc(s) + '">'; }).join('');
     $('dl-progetti').innerHTML = Array.from(prog).sort(L.confronta).map(function (s) { return '<option value="' + esc(s) + '">'; }).join('');
+    disegnaCapacita();                       // le sezioni nuove dei pezzi compaiono nel riquadro 1
   }
   function togliRigheVuote() {
     stato.pezzi = stato.pezzi.filter(function (r) { return !(L.testo(r.qta) === '' && L.testo(r.lung) === ''); });
@@ -2180,7 +2261,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     }).then(function () { inCalcolo = false; $('btn-calcola').disabled = false; });
   }
 
-  /* ====================== riquadro 3: il piano ====================== */
+  /* ====================== riquadro 4: il piano ====================== */
   function etichetta(progetti) {
     const nomi = progetti.filter(function (p) { return p !== ''; });
     return nomi.length ? 'pr. ' + nomi.join('+') : '';
@@ -2287,11 +2368,13 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
 
     const quando = new Date(p.calcolatoIl);
     let h = '<div class="testa-stampa solo-stampa"><h1>Piano di taglio — ' + quando.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</h1>' +
-      '<p>Testatura ' + par.rifilo + ' mm · lama ' + par.lama + ' mm' + (par.pacco > 1 ? ' · pacchi da ' + par.pacco + ' tavole' : '') + ' · tagli dal pezzo più lungo al più corto</p></div>';
+      '<p>Testatura ' + par.rifilo + ' mm · lama ' + par.lama + ' mm' + ' · tagli dal pezzo più lungo al più corto</p></div>';
     if (stato.pianoVecchio) h += '<div class="nota-gialla solo-schermo">⚠ La lista o le impostazioni sono cambiate dopo questo calcolo: premi di nuovo <b>CALCOLA</b> per aggiornare il piano.</div>';
     if (p.avvisi && p.avvisi.length) h += '<div class="avvisi"><b>Attenzione: alcune righe non sono nel piano</b><ul>' + p.avvisi.map(function (a) { return '<li>' + esc(a.testo) + '</li>'; }).join('') + '</ul></div>';
 
     // riepilogo generale
+    const conPacchi = p.gruppi.some(function (g) { return (g.pacco || par.pacco) > 1; });
+    const tuttiPacchi = p.gruppi.every(function (g) { return (g.pacco || par.pacco) > 1; });
     const tot = { tavole: 0, legno: 0, scarto: 0, recupero: 0, nRec: 0, schemi: 0, pacchi: 0, pezzi: 0, nPezzi: 0 };
     const stat = p.gruppi.map(function (g) { return L.statVariante(g.varianti[g.scelta].schemi, par); });
     stat.forEach(function (s) {
@@ -2304,12 +2387,13 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
       '<div class="riquadro"><b>' + metri(tot.legno) + '</b><span>di tavole (' + metri(tot.pezzi) + ' diventano ' + plurale(tot.nPezzi, 'pezzo', 'pezzi') + ')</span></div>' +
       '<div class="riquadro"><b>' + nf(tot.legno ? 100 * tot.scarto / tot.legno : 0, 1) + ' %</b><span>di spreco (' + metri(tot.scarto) + ': testature, lama, sfridi corti)</span></div>' +
       '<div class="riquadro"><b>' + (tot.nRec ? tot.nRec + ' · ' + metri(tot.recupero) : 'nessuno') + '</b><span>sfridi recuperabili (da ' + par.sfridoMin + ' mm in su)</span></div>' +
-      '<div class="riquadro"><b>' + tot.schemi + (par.pacco > 1 ? ' · ' + tot.pacchi : '') + '</b><span>' + (par.pacco > 1 ? 'schemi · pacchi da caricare' : 'schemi di taglio') + '</span></div></div>';
+      '<div class="riquadro"><b>' + tot.schemi + (conPacchi ? ' · ' + tot.pacchi : '') + '</b><span>' + (conPacchi ? 'schemi · pacchi da caricare' : 'schemi di taglio') + '</span></div></div>';
 
     let n = 0;
     const lettere = [];                      // per la tabella di controllo
     p.gruppi.forEach(function (g, gi) {
       const v = g.varianti[g.scelta], st = stat[gi];
+      const parG = Object.assign({}, par, { pacco: g.pacco || par.pacco });   // tavole insieme per questa sezione
       h += '<div class="gruppo"><h3>' + esc(L.nomeGruppo(g)) + '</h3>';
       if (g.varianti.length > 1) {
         const base = L.statVariante(g.varianti[0].schemi, par);
@@ -2317,7 +2401,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
         g.varianti.forEach(function (vv, vi) {
           const s = L.statVariante(vv.schemi, par);
           let riga = '<b>' + (vi === 0 ? 'Meno legno' : 'Più semplice') + '</b>: ' + plurale(s.tavole, 'tavola', 'tavole') + ' · ' + plurale(s.schemi, 'schema', 'schemi') +
-            (par.pacco > 1 ? ' · ' + plurale(s.pacchi, 'pacco', 'pacchi') : '');
+            (parG.pacco > 1 ? ' · ' + plurale(s.pacchi, 'pacco', 'pacchi') : '');
           if (vi > 0) riga += ' <span class="piu">(' + (s.tavole > base.tavole ? plurale(s.tavole - base.tavole, 'tavola', 'tavole') : metri(s.legno - base.legno)) + ' in più, ' +
             plurale(base.schemi - s.schemi, 'schema', 'schemi') + ' in meno' + (s.recupero > base.recupero ? ', ' + metri(s.recupero - base.recupero) + ' tornano come sfridi recuperabili' : '') + ')</span>';
           h += '<label><input type="radio" name="var-' + gi + '" data-g="' + gi + '" value="' + vi + '"' + (g.scelta === vi ? ' checked' : '') + '> <span>' + riga + '</span></label>';
@@ -2326,15 +2410,15 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
       }
       h += '<p class="riga-riepilogo">' + st.perLung.map(function (x) { return plurale(x.n, 'tavola', 'tavole') + ' da ' + x.lung + ' mm'; }).join(' + ') +
         ' · ' + metri(st.legno) + ' · spreco ' + nf(100 * st.scarto / st.legno, 1) + ' %' +
-        ' · ' + plurale(st.schemi, 'schema', 'schemi') + (par.pacco > 1 ? ' · ' + plurale(st.pacchi, 'pacco', 'pacchi') : '') + '</p>';
+        ' · ' + plurale(st.schemi, 'schema', 'schemi') + (parG.pacco > 1 ? ' · ' + plurale(st.pacchi, 'pacco', 'pacchi') + ' (fino a ' + parG.pacco + ' tavole insieme)' : ' · una tavola alla volta') + '</p>';
       const m = testoMinimo(g, st, par);
       if (m.t) h += '<p class="minimo' + (m.ok ? ' ok' : '') + '">' + esc(m.t) + '</p>';
       if (g.mancanti.length) {
         h += '<div class="mancanti"><b>Tavole insufficienti:</b> con le tavole indicate restano da tagliare ' +
-          g.mancanti.map(function (x) { return x.qta + ' × ' + x.lung + (x.progetto ? ' (pr. ' + esc(x.progetto) + ')' : ''); }).join(', ') + '. Aggiungi tavole nel riquadro 1 e ricalcola.</div>';
+          g.mancanti.map(function (x) { return x.qta + ' × ' + x.lung + (x.progetto ? ' (pr. ' + esc(x.progetto) + ')' : ''); }).join(', ') + '. Aggiungi tavole nel riquadro 2 e ricalcola.</div>';
       }
       const lg = [];
-      v.schemi.forEach(function (s, si) { const nome = L.lettera(n++); lg.push(nome); h += schemaHtml(s, nome, gi, si, par, colore); });
+      v.schemi.forEach(function (s, si) { const nome = L.lettera(n++); lg.push(nome); h += schemaHtml(s, nome, gi, si, parG, colore); });
       lettere.push(lg);
       if (st.recuperi.length) h += '<p class="recuperi"><b>Sfridi da recuperare:</b> ' + st.recuperi.map(function (r) { return r.n + ' × ' + r.lung + ' mm'; }).join(', ') + ' (in tutto ' + metri(st.recupero) + ').</p>';
       h += '</div>';
@@ -2345,7 +2429,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     p.gruppi.forEach(function (g) { g.varianti[g.scelta].schemi.forEach(function (s) { s.pacchi.forEach(function (pk) { if (pk.fatto) fatti++; }); }); });
     h += '<div class="fondo-piano solo-schermo"><button class="btn btn-primario" type="button" data-fai="stampa">Stampa il piano</button>' +
       '<label class="spunta"><input type="checkbox" data-fai="compatta"' + (stato.stampaCompatta ? ' checked' : '') + '> Stampa compatta (senza i disegni: più schemi per foglio)</label>' +
-      (fatti ? '<button class="btn" type="button" data-fai="togli">Togli dalla lista i pezzi già tagliati (' + plurale(fatti, par.pacco > 1 ? 'pacco' : 'tavola', par.pacco > 1 ? 'pacchi' : 'tavole') + ')</button>' : '') + '</div>';
+      (fatti ? '<button class="btn" type="button" data-fai="togli">Togli dalla lista i pezzi già tagliati (' + plurale(fatti, tuttiPacchi ? 'pacco' : (conPacchi ? 'casella spuntata' : 'tavola'), tuttiPacchi ? 'pacchi' : (conPacchi ? 'caselle spuntate' : 'tavole')) + ')</button>' : '') + '</div>';
 
     // tabella di controllo: ogni progetto riceve tutti i suoi pezzi?
     h += '<details class="controllo"><summary>Controllo: pezzi per progetto</summary>';
@@ -2412,7 +2496,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     };
     lettore.readAsText(file);
   }
-  function disegnaTutto() { disegnaParametri(); disegnaTavole(); disegnaPezzi(); disegnaPiano(); $('rap-progetto').value = stato.rapido.progetto; $('rap-sezione').value = stato.rapido.sezione; $('rap-ht').checked = stato.rapido.ht; }
+  function disegnaTutto() { disegnaParametri(); disegnaCapacita(true); disegnaTavole(); disegnaPezzi(); disegnaPiano(); $('rap-progetto').value = stato.rapido.progetto; $('rap-sezione').value = stato.rapido.sezione; $('rap-ht').checked = stato.rapido.ht; }
 
   /* ====================== collegamento dei comandi ====================== */
   Object.keys(CAMPI).forEach(function (id) { $(id).addEventListener('input', function () { leggiParametro(id); }); $(id).addEventListener('blur', disegnaParametri); });
@@ -2432,6 +2516,49 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     stato.tavole.splice(Number(e.target.closest('tr').dataset.i), 1);
     if (!stato.tavole.length) stato.tavole.push({ lung: '', qta: '', sezione: '', tipo: 'tutti' });
     disegnaTavole(); modificato();
+  });
+  $('corpo-capacita').addEventListener('input', function (e) {
+    const el = e.target, c = el.dataset.c, tr = el.closest('tr');
+    if (!c || !tr) return;
+    if (c === 'predefinito') {                  // "tutte le altre sezioni"
+      const v = L.tavoleValide(el.value);
+      tr.className = 'altre' + (v ? '' : ' errata');
+      if (!v) return;                           // finché non è un numero valido resta quello di prima
+      stato.parametri.pacco = v;
+      document.querySelectorAll('#corpo-capacita [data-c=tavole]').forEach(function (x) { x.placeholder = v; });
+      modificato();
+      return;
+    }
+    let i = Number(tr.dataset.i);
+    if (i < 0) {                                // sezione arrivata dai pezzi: da adesso è memorizzata
+      stato.capacita.push({ sezione: tr.dataset.sezione, tavole: '' });
+      i = stato.capacita.length - 1;
+      tr.dataset.i = i;
+    }
+    stato.capacita[i][c] = el.value;
+    if (c === 'tavole') {
+      const sbagliata = L.testo(el.value) !== '' && !L.tavoleValide(el.value);
+      tr.classList.toggle('errata', sbagliata);
+      tr.title = sbagliata ? 'numero di tavole non valido: si usa ' + stato.parametri.pacco : '';
+    }
+    modificato();
+  });
+  $('corpo-capacita').addEventListener('focusout', function (e) {    // uscendo dal riquadro si rimette in ordine
+    if (e.relatedTarget && $('corpo-capacita').contains(e.relatedTarget)) return;
+    stato.capacita = stato.capacita.filter(function (c) { return L.testo(c.sezione) !== '' || L.testo(c.tavole) !== ''; });
+    ricorda();
+    setTimeout(function () { disegnaCapacita(); aggiornaSuggerimenti(); }, 0);
+  });
+  $('corpo-capacita').addEventListener('click', function (e) {
+    if (e.target.dataset.via !== 'capacita') return;
+    stato.capacita.splice(Number(e.target.closest('tr').dataset.i), 1);
+    disegnaCapacita(true); modificato();
+  });
+  $('btn-piu-capacita').addEventListener('click', function () {
+    stato.capacita.push({ sezione: '', tavole: '' });
+    disegnaCapacita(true);
+    const nuova = document.querySelector('#corpo-capacita tr[data-i="' + (stato.capacita.length - 1) + '"] [data-c=sezione]');
+    if (nuova) nuova.focus();
   });
   $('btn-piu-tavola').addEventListener('click', function () {
     stato.tavole.push({ lung: '', qta: '', sezione: '', tipo: 'tutti' });
