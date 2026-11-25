@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piano Tagli</title>
+<meta name="description" content="Piano di taglio delle tavole con il minimo spreco: schemi raggruppati, pacchi da spuntare, stampa per l'officina.">
+<meta name="theme-color" content="#5f3d1c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22104%22%20fill%3D%22%235f3d1c%22%2F%3E%3Crect%20x%3D%2296%22%20y%3D%22300%22%20width%3D%22320%22%20height%3D%2272%22%20rx%3D%226%22%20fill%3D%22%232a1a0c%22%2F%3E%3Crect%20x%3D%22100%22%20y%3D%22304%22%20width%3D%22134%22%20height%3D%2264%22%20rx%3D%223%22%20fill%3D%22%23ffd9a8%22%2F%3E%3Crect%20x%3D%22244%22%20y%3D%22304%22%20width%3D%2296%22%20height%3D%2264%22%20fill%3D%22%23bfe3ff%22%2F%3E%3Crect%20x%3D%22350%22%20y%3D%22304%22%20width%3D%2262%22%20height%3D%2264%22%20rx%3D%223%22%20fill%3D%22%23c9f0c3%22%2F%3E%3Cpolygon%20points%3D%22352.0%2C196.0%20333.3%2C213.8%20348.2%2C225.0%20325.5%2C237.3%20337.0%2C252.0%20311.9%2C258.1%20319.2%2C275.2%20293.4%2C274.6%20296.0%2C293.0%20271.2%2C285.7%20269.0%2C304.2%20247.0%2C290.7%20240.0%2C308.0%20222.2%2C289.3%20211.0%2C304.2%20198.7%2C281.5%20184.0%2C293.0%20177.9%2C267.9%20160.8%2C275.2%20161.4%2C249.4%20143.0%2C252.0%20150.3%2C227.2%20131.8%2C225.0%20145.3%2C203.0%20128.0%2C196.0%20146.7%2C178.2%20131.8%2C167.0%20154.5%2C154.7%20143.0%2C140.0%20168.1%2C133.9%20160.8%2C116.8%20186.6%2C117.4%20184.0%2C99.0%20208.8%2C106.3%20211.0%2C87.8%20233.0%2C101.3%20240.0%2C84.0%20257.8%2C102.7%20269.0%2C87.8%20281.3%2C110.5%20296.0%2C99.0%20302.1%2C124.1%20319.2%2C116.8%20318.6%2C142.6%20337.0%2C140.0%20329.7%2C164.8%20348.2%2C167.0%20334.7%2C189.0%22%20fill%3D%22%23dfe3e6%22%20stroke%3D%22%237d858c%22%20stroke-width%3D%224%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%22240%22%20cy%3D%22196%22%20r%3D%2244%22%20fill%3D%22%23b4bbc1%22%2F%3E%3Ccircle%20cx%3D%22240%22%20cy%3D%22196%22%20r%3D%2218%22%20fill%3D%22%235f3d1c%22%2F%3E%3C%2Fsvg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Piano Tagli">
+<!--
+  PIANO TAGLI — ottimizzatore dei tagli a misura per tavole di legno
+  -------------------------------------------------------------------
+  File unico: funziona senza internet e senza installazione.
+  Basta un doppio clic (si apre nel browser: Edge o Chrome).
+
+  Com'è fatto questo file:
+    1. STILE      l'aspetto della pagina e della stampa
+    2. PAGINA     i riquadri che si vedono
+    3. MOTORE     il calcolo che trova il piano con meno spreco
+    4. LOGICA     controlli sui dati, etichette dei progetti, riepiloghi
+    5. COMANDI    cosa succede quando si scrive o si preme un pulsante
+-->
+<style>
+/* ============================ 1. STILE ============================ */
+:root {
+  --sfondo: #f2efe8; --carta: #ffffff; --testo: #1c2126; --tenue: #5d666e; --bordo: #cfc8b8;
+  --legno: #8a5a2b; --legno-scuro: #5f3d1c; --verde: #1d7a3e; --verde-scuro: #155e2f;
+  --rosso: #b3261e; --giallo: #fff3c4; --blu: #0b5cad;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; }
+body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; background: var(--sfondo); color: var(--testo); line-height: 1.4; }
+h1, h2, h3, p { margin: 0; }
+[hidden] { display: none !important; }
+.solo-stampa { display: none; }
+
+.barra-app { background: var(--legno-scuro); color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; }
+.marchio { font-size: 1.45rem; font-weight: 800; }
+.marchio small { font-size: .8rem; font-weight: 500; opacity: .85; margin-left: 10px; }
+.azioni { display: flex; gap: 8px; flex-wrap: wrap; }
+main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 70px; }
+
+.scheda { background: var(--carta); border: 1px solid var(--bordo); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.scheda > h2 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.numero { display: inline-flex; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--legno); color: #fff; align-items: center; justify-content: center; font-weight: 800; flex: none; }
+.guida { color: var(--tenue); font-size: .9rem; margin: 2px 0 10px; }
+h3.sotto { font-size: 1rem; margin: 0 0 6px; }
+
+.btn { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1.5px solid var(--bordo); background: #fff; color: var(--testo); cursor: pointer; }
+.btn:hover { background: #f6f2e9; }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .btn-x:focus-visible, .btn-link:focus-visible { outline: 3px solid #f0a53a; outline-offset: 1px; }
+.barra-app .btn { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); color: #fff; }
+.barra-app .btn:hover { background: rgba(255,255,255,.24); }
+.btn-primario { background: var(--verde); border-color: var(--verde-scuro); color: #fff; }
+.btn-primario:hover { background: var(--verde-scuro); }
+.btn-grande { font-size: 1.3rem; padding: 16px 34px; border-radius: 12px; font-weight: 800; letter-spacing: .02em; }
+.btn[disabled] { opacity: .55; cursor: wait; }
+.btn-x { font: inherit; border: none; background: none; color: var(--rosso); cursor: pointer; font-size: 1.05rem; padding: 6px 10px; border-radius: 6px; }
+.btn-x:hover { background: #fbe9e7; }
+.btn-link { font: inherit; border: none; background: none; color: var(--blu); cursor: pointer; text-decoration: underline; padding: 4px; }
+
+input, select, textarea { font: inherit; color: var(--testo); }
+input[type=text], select, textarea { padding: 8px 10px; border: 1.5px solid #b8b0a0; border-radius: 7px; background: #fff; width: 100%; }
+input.num { text-align: right; font-variant-numeric: tabular-nums; }
+input[type=checkbox], input[type=radio] { width: 22px; height: 22px; accent-color: var(--verde); vertical-align: middle; cursor: pointer; flex: none; }
+
+table.griglia { border-collapse: collapse; width: 100%; }
+table.griglia th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--tenue); text-align: left; padding: 4px 6px; font-weight: 700; }
+table.griglia td { padding: 3px 4px; vertical-align: middle; }
+table.griglia td.n { color: var(--tenue); font-size: .85rem; text-align: right; width: 2.6em; padding-right: 8px; }
+table.griglia td.c { text-align: center; }
+tr.errata input.num { border-color: var(--rosso); background: #fff4f2; }
+
+.due { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
+.campi { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.campo label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 3px; }
+.campo small { color: var(--tenue); font-size: .8rem; display: block; margin-top: 2px; }
+.rapidi { display: flex; gap: 4px; margin-top: 4px; }
+.rapidi button { font: inherit; font-size: .85rem; padding: 2px 11px; border: 1px solid var(--bordo); background: #faf7f0; border-radius: 999px; cursor: pointer; }
+.rapidi button:hover { background: #efe8d8; }
+
+.rapido { display: grid; grid-template-columns: 120px 130px auto minmax(0, 1fr) auto; gap: 10px; align-items: end; background: #faf6ec; border: 1px solid var(--bordo); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.rapido label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 3px; }
+.rapido .ht { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; font-weight: 600; }
+.sotto-tabella { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.totali { color: var(--tenue); font-size: .95rem; }
+.lista-vuota { color: var(--tenue); padding: 14px 6px; }
+.scorri { max-height: 460px; overflow: auto; border: 1px solid #e6e0d2; border-radius: 8px; padding: 4px; }
+
+#zona-calcola { text-align: center; margin: 4px 0 20px; }
+#messaggio { min-height: 1.6em; margin-top: 10px; font-weight: 600; }
+#messaggio.errore { color: var(--rosso); }
+
+/* ---- piano ---- */
+.vuoto { color: var(--tenue); padding: 8px 0; }
+.nota-gialla { background: var(--giallo); border: 1px solid #e2c761; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.avvisi { background: #fdecea; border: 1.5px solid var(--rosso); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+.avvisi ul { margin: 6px 0 0; padding-left: 20px; }
+.riquadri { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.riquadro { flex: 1 1 150px; border: 1.5px solid var(--bordo); border-radius: 10px; padding: 8px 12px; background: #fbf9f4; }
+.riquadro b { display: block; font-size: 1.6rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.riquadro span { font-size: .82rem; color: var(--tenue); }
+.gruppo { margin-top: 18px; }
+.gruppo > h3 { font-size: 1.25rem; border-bottom: 3px solid var(--legno); padding-bottom: 4px; margin-bottom: 8px; }
+.varianti { display: flex; flex-direction: column; gap: 6px; background: #f3f8f3; border: 1px solid #b9d6bf; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.varianti label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.varianti .piu { color: var(--verde-scuro); font-weight: 600; }
+.riga-riepilogo { font-weight: 600; }
+.minimo { color: var(--tenue); font-size: .92rem; margin-bottom: 6px; }
+.minimo.ok { color: var(--verde-scuro); }
+
+.schema { border: 2px solid #2a2a2a; border-radius: 8px; padding: 9px 12px 10px; margin: 10px 0; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+.schema-testa { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.schema-lettera { font-size: 1.45rem; font-weight: 800; background: #1c2126; color: #fff; border-radius: 6px; padding: 0 12px; min-width: 2.2em; text-align: center; }
+.schema-ripeti { font-size: 1.2rem; }
+.schema-ripeti b { font-size: 1.45rem; }
+.schema-info { color: var(--tenue); font-size: .92rem; }
+.schema-tagli { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.taglio small { font-size: .78rem; font-weight: 600; color: var(--tenue); margin-left: 4px; }
+.piu-segno { color: var(--tenue); font-weight: 500; }
+.sfrido-testo { font-size: 1rem; font-weight: 600; color: var(--tenue); border-left: 2px solid #999; padding-left: 10px; margin-left: 4px; }
+.sfrido-testo.recupero { color: var(--verde-scuro); }
+.barra { display: flex; height: 44px; border: 1.5px solid #333; border-radius: 4px; overflow: hidden; margin: 8px 0; background: #fff; }
+.seg { display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: 1.5px solid #333; overflow: hidden; white-space: nowrap; font-size: .92rem; line-height: 1.1; min-width: 0; }
+.seg b { font-weight: 700; }
+.seg small { font-weight: 600; font-size: .7rem; }
+.seg.testa { flex: 0 0 5px; background: #555; }
+.seg.sfrido { flex: 1 1 0; border-right: none; color: #444; font-size: .78rem; background: repeating-linear-gradient(45deg, #d9d9d9 0 6px, #f7f7f7 6px 12px); }
+.pacchi { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.pacchi.in-testa { margin-left: auto; }
+.pacchi .etich { font-weight: 700; }
+.pacco { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.pacco.largo { display: flex; flex: 1 1 100%; align-items: flex-start; }
+.pacco.largo input { margin-top: 2px; }
+.schema.fatto { border-color: #9aa39d; background: #f4f6f4; }
+.schema.fatto .schema-tagli .taglio, .schema.fatto .schema-ripeti { text-decoration: line-through; color: #6c756f; }
+.schema.fatto .barra { opacity: .45; }
+.recuperi { margin: 8px 0; }
+.mancanti { background: #fff0e0; border: 1.5px solid #d9822b; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.fondo-piano { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+details.controllo { margin-top: 16px; border-top: 1px solid var(--bordo); padding-top: 10px; }
+details.controllo summary { cursor: pointer; font-weight: 700; }
+details.controllo { overflow-x: auto; }
+.invito { background: #fff7e0; border-bottom: 1px solid #e2c761; padding: 8px 16px; display: flex; align-items: center; justify-content: center; gap: 8px 14px; flex-wrap: wrap; font-size: .95rem; text-align: center; }
+.invito-azioni { display: inline-flex; align-items: center; gap: 6px; }
+table.controllo { border-collapse: collapse; margin-top: 8px; font-size: .9rem; }
+table.controllo th, table.controllo td { border: 1px solid #c9c2b2; padding: 3px 10px; text-align: right; }
+table.controllo th { background: #f3efe6; }
+table.controllo td.t, table.controllo th.t { text-align: left; }
+
+/* ---- finestra "incolla da Excel" ---- */
+.velo { position: fixed; inset: 0; background: rgba(20,20,20,.5); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+.finestra { background: #fff; border-radius: 12px; padding: 20px; width: min(760px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.finestra h2 { font-size: 1.25rem; margin-bottom: 6px; }
+.finestra textarea { min-height: 170px; font-family: Consolas, "Courier New", monospace; font-size: .92rem; margin: 8px 0; }
+.finestra .riga { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 8px; }
+.finestra .riga label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 3px; }
+.finestra .piede { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.spunta { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .due { grid-template-columns: 1fr; }
+  .rapido { grid-template-columns: 1fr 1fr; }
+  .rapido .largo { grid-column: 1 / -1; }
+}
+
+/* ---- telefono: tutto in colonna, le righe delle tabelle diventano schede ---- */
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  .barra-app { position: static; padding: 8px 10px; gap: 6px; }
+  .marchio { font-size: 1.2rem; }
+  .marchio small { display: none; }
+  .azioni { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .azioni .btn { padding: 8px 4px; font-size: .9rem; }
+  main { padding: 10px 8px 60px; }
+  .scheda { padding: 14px 12px; margin-bottom: 12px; border-radius: 10px; }
+  .scheda > h2 { font-size: 1.15rem; }
+  .campi { gap: 10px; }
+  .campo small { font-size: .75rem; }
+  input[type=text], select { padding: 7px 8px; }
+  .rapido { grid-template-columns: 1fr 1fr auto; padding: 10px; gap: 8px; }
+  .rapido .largo, #btn-rapido { grid-column: 1 / -1; }
+  .scorri { max-height: none; overflow: visible; border: none; padding: 0; }
+  #zona-calcola .btn-grande { width: 100%; font-size: 1.15rem; padding: 14px 10px; }
+  /* ogni riga diventa una scheda su due righe, con il nome sopra ogni casella */
+  table.griglia, table.griglia tbody { display: block; }
+  table.griglia thead { display: none; }
+  table.griglia tr { display: grid; gap: 6px 8px; align-items: end; padding: 8px 2px 10px; border-bottom: 1px solid #e3dccb; }
+  table.griglia td { padding: 0; min-width: 0; }
+  table.griglia td[data-et]::before { content: attr(data-et); display: block; font-size: .7rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--tenue); margin-bottom: 2px; }
+  table.griglia td.c { text-align: center; }
+  table.griglia td.c input { margin: 6px 0 8px; }
+  table.griglia td.via { text-align: right; }
+  #corpo-pezzi tr { grid-template-columns: 1.5em minmax(0, 1fr) minmax(0, 1fr) 2.6em 2.4em; }
+  #corpo-pezzi td.n { grid-column: 1; grid-row: 1 / span 2; align-self: center; width: auto; padding: 0; text-align: center; font-size: .8rem; }
+  #corpo-pezzi td:nth-child(2) { grid-column: 2; grid-row: 1; }
+  #corpo-pezzi td:nth-child(3) { grid-column: 3; grid-row: 1; }
+  #corpo-pezzi td:nth-child(4) { grid-column: 4; grid-row: 1; }
+  #corpo-pezzi td:nth-child(5) { grid-column: 2; grid-row: 2; }
+  #corpo-pezzi td:nth-child(6) { grid-column: 3 / span 3; grid-row: 2; }
+  #corpo-pezzi td:nth-child(7) { grid-column: 5; grid-row: 1; }
+  /* sul telefono non si può "passare sopra col mouse": il motivo dell'errore si scrive sotto la riga */
+  #corpo-pezzi tr.errata::after { content: attr(title); grid-column: 1 / -1; grid-row: 3; color: var(--rosso); font-size: .85rem; font-weight: 600; }
+  #corpo-tavole tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 2.4em; }
+  #corpo-tavole td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  #corpo-tavole td:nth-child(2) { grid-column: 2; grid-row: 1; }
+  #corpo-tavole td:nth-child(5) { grid-column: 3; grid-row: 1; }
+  #corpo-tavole td:nth-child(3) { grid-column: 1; grid-row: 2; }
+  #corpo-tavole td:nth-child(4) { grid-column: 2 / span 2; grid-row: 2; }
+  /* piano di taglio */
+  .riquadri { gap: 8px; }
+  .riquadro { flex: 1 1 130px; padding: 6px 10px; }
+  .riquadro b { font-size: 1.3rem; }
+  .schema { padding: 8px 10px 10px; }
+  .schema-testa { gap: 6px 12px; }
+  .schema-lettera { font-size: 1.3rem; }
+  .schema-tagli { font-size: 1.35rem; }
+  .barra { height: 38px; }
+  .seg { font-size: .8rem; }
+  .pacchi input[type=checkbox] { width: 28px; height: 28px; }
+  .pacco { padding: 4px 0; }
+  .fondo-piano .btn { width: 100%; }
+  .finestra { padding: 14px; }
+  .finestra .riga { grid-template-columns: 1fr 1fr; }
+  .finestra .riga .spunta { grid-column: 1 / -1; }
+}
+
+/* ---- stampa su A4: si stampa solo il piano, a caratteri grandi ---- */
+@media print {
+  @page { size: A4 portrait; margin: 10mm; }
+  html { font-size: 12.5pt; }
+  body { background: #fff; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .solo-schermo { display: none !important; }
+  .solo-stampa { display: block; }
+  main { max-width: none; padding: 0; }
+  .scheda { border: none; box-shadow: none; padding: 0; margin: 0; }
+  .scheda > h2 { display: none; }
+  .testa-stampa { border-bottom: 2pt solid #000; padding-bottom: 4pt; margin-bottom: 8pt; }
+  .testa-stampa h1 { font-size: 18pt; }
+  .riquadri { gap: 4pt; flex-wrap: nowrap; margin-bottom: 6pt; }
+  .riquadro { flex: 1 1 0; padding: 3pt 6pt; }
+  .riquadro b { font-size: 13pt; }
+  .riquadro span { font-size: 7.5pt; line-height: 1.2; display: block; }
+  .gruppo { margin-top: 8pt; }
+  .gruppo > h3 { border-bottom-color: #000; break-after: avoid; }
+  .schema { border: 1.5pt solid #000; margin: 5pt 0; padding: 5pt 8pt 6pt; }
+  .schema.fatto { background: #fff; }
+  .schema-tagli { margin-top: 3pt; }
+  .barra { height: 20pt; margin: 4pt 0 2pt; }
+  .compatta .barra { display: none; }
+  .compatta .schema { padding: 4pt 8pt; margin: 4pt 0; }
+  .seg small { display: none; }
+  input[type=checkbox] { width: 16pt; height: 16pt; }
+  *:focus, *:focus-visible { outline: none !important; }
+  details.controllo:not([open]) { display: none; }
+}
+</style>
+</head>
+<body>
+<!-- ============================ 2. PAGINA ============================ -->
+<header class="barra-app solo-schermo">
+  <div class="marchio">Piano Tagli <small>tagli a misura con il minimo spreco</small></div>
+  <div class="azioni">
+    <button class="btn" id="btn-nuova" type="button">Nuova lista</button>
+    <button class="btn" id="btn-apri" type="button">Apri lista…</button>
+    <button class="btn" id="btn-salva" type="button">Salva lista…</button>
+    <button class="btn" id="btn-stampa" type="button">Stampa piano</button>
+  </div>
+</header>
+<div class="invito solo-schermo" id="invito-app" hidden>
+  <span id="invito-testo"></span>
+  <span class="invito-azioni"><button class="btn btn-primario" id="btn-installa" type="button" hidden>Installa</button><button class="btn-x" id="btn-invito-chiudi" type="button" title="Chiudi" aria-label="Chiudi l'avviso">✕</button></span>
+</div>
+
+<main>
+  <!-- 1 · tavole di oggi e macchina -->
+  <section class="scheda solo-schermo" id="sez-tavole">
+    <h2><span class="numero">1</span> Tavole di oggi e macchina</h2>
+    <div class="due">
+      <div>
+        <h3 class="sotto">Tavole grezze disponibili</h3>
+        <p class="guida">Scrivi la lunghezza delle tavole di oggi. Se ne hai di più lunghezze, aggiungi una riga per ciascuna.</p>
+        <table class="griglia">
+          <thead><tr><th style="width:23%">Lunghezza (mm)</th><th style="width:25%">Quante ne ho</th><th style="width:22%">Sezione</th><th style="width:24%">Legno</th><th></th></tr></thead>
+          <tbody id="corpo-tavole"></tbody>
+        </table>
+        <div class="sotto-tabella">
+          <button class="btn" id="btn-piu-tavola" type="button">+ Aggiungi lunghezza</button>
+          <span class="guida">«Quante ne ho» vuoto = quante ne servono. «Sezione» vuota = vale per tutte.</span>
+        </div>
+      </div>
+      <div>
+        <h3 class="sotto">Macchina e tagli</h3>
+        <div class="campi">
+          <div class="campo">
+            <label for="par-rifilo">Testatura (mm)</label>
+            <input type="text" class="num" id="par-rifilo" inputmode="numeric">
+            <div class="rapidi"><button type="button" data-rifilo="0">0</button><button type="button" data-rifilo="5">5</button><button type="button" data-rifilo="10">10</button></div>
+            <small>Tolta in testa a ogni tavola.</small>
+          </div>
+          <div class="campo">
+            <label for="par-lama">Spessore lama (mm)</label>
+            <input type="text" class="num" id="par-lama" inputmode="numeric">
+            <small>Legno perso a ogni taglio.</small>
+          </div>
+          <div class="campo">
+            <label for="par-pacco">Tavole per pacco</label>
+            <input type="text" class="num" id="par-pacco" inputmode="numeric">
+            <small>Quante ne tagliate insieme (es. 2 colonne da 6 = 12). 1 = una alla volta.</small>
+          </div>
+          <div class="campo">
+            <label for="par-sfrido">Sfrido riutilizzabile da (mm)</label>
+            <input type="text" class="num" id="par-sfrido" inputmode="numeric">
+            <small>Gli avanzi da questa misura in su sono recuperabili.</small>
+          </div>
+          <div class="campo">
+            <label for="par-quota">Quota massima macchina (mm)</label>
+            <input type="text" class="num" id="par-quota" inputmode="numeric">
+            <small>Nessun pezzo può essere più lungo.</small>
+          </div>
+          <div class="campo">
+            <label for="par-tempo">Tempo di calcolo</label>
+            <select id="par-tempo">
+              <option value="1.5">Veloce (1 s)</option>
+              <option value="3">Normale (3 s)</option>
+              <option value="10">Accurato (10 s)</option>
+            </select>
+            <small>Tempo massimo per ogni sezione. Più tempo = meno schemi.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · pezzi da tagliare -->
+  <section class="scheda solo-schermo" id="sez-pezzi">
+    <h2><span class="numero">2</span> Pezzi da tagliare</h2>
+    <div class="rapido">
+      <div><label for="rap-progetto">Progetto</label><input type="text" id="rap-progetto" list="dl-progetti" placeholder="es. 9"></div>
+      <div><label for="rap-sezione">Sezione</label><input type="text" id="rap-sezione" list="dl-sezioni" placeholder="es. 100×50"></div>
+      <label class="ht"><input type="checkbox" id="rap-ht"> HT</label>
+      <div class="largo"><label for="rap-pezzi">Pezzi: quantità x lunghezza, separati da virgola</label><input type="text" id="rap-pezzi" placeholder="es. 14x2400, 3x760, 10x1200"></div>
+      <button class="btn btn-primario" id="btn-rapido" type="button">Aggiungi</button>
+    </div>
+    <div class="scorri">
+      <table class="griglia" id="tab-pezzi">
+        <thead><tr><th></th><th>Progetto</th><th>Sezione</th><th>HT</th><th>Quantità</th><th>Lunghezza (mm)</th><th></th></tr></thead>
+        <tbody id="corpo-pezzi"></tbody>
+      </table>
+      <p class="lista-vuota" id="lista-vuota">La lista è vuota. Aggiungi i pezzi qui sopra, incollali da Excel oppure <button class="btn-link" id="btn-esempio" type="button">carica l'esempio</button>.</p>
+    </div>
+    <div class="sotto-tabella">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btn-piu-riga" type="button">+ Aggiungi riga</button>
+        <button class="btn" id="btn-incolla" type="button">Incolla da Excel…</button>
+      </div>
+      <span class="totali" id="totali"></span>
+    </div>
+  </section>
+
+  <div id="zona-calcola" class="solo-schermo">
+    <button class="btn btn-primario btn-grande" id="btn-calcola" type="button">CALCOLA IL PIANO DI TAGLIO</button>
+    <div id="messaggio" role="status" aria-live="polite"></div>
+  </div>
+
+  <!-- 3 · piano di taglio -->
+  <section class="scheda" id="sez-piano">
+    <h2><span class="numero">3</span> Piano di taglio</h2>
+    <div id="piano"></div>
+  </section>
+  <p class="guida solo-schermo" style="text-align:center">Funziona senza internet. La lista resta su questo dispositivo; per portarla altrove usa «Salva lista…».</p>
+</main>
+
+<!-- finestra "incolla da Excel" -->
+<div class="velo solo-schermo" id="finestra-incolla" hidden>
+  <div class="finestra" role="dialog" aria-modal="true" aria-labelledby="titolo-incolla">
+    <h2 id="titolo-incolla">Incolla da Excel</h2>
+    <p class="guida">In Excel seleziona le celle e premi Ctrl+C; poi clicca nel riquadro qui sotto e premi Ctrl+V.<br>
+      Colonne riconosciute, in quest'ordine: <b>Progetto · Sezione · HT · Quantità · Lunghezza</b> (5 colonne), oppure Progetto · Sezione · Quantità · Lunghezza (4), Progetto · Quantità · Lunghezza (3), Quantità · Lunghezza (2).<br>
+      Va bene anche il testo libero, una riga per progetto: <code>Progetto 101: 14x2400, 3x760</code></p>
+    <div class="riga">
+      <div><label for="inc-progetto">Progetto (se manca nelle celle)</label><input type="text" id="inc-progetto" list="dl-progetti"></div>
+      <div><label for="inc-sezione">Sezione (se manca nelle celle)</label><input type="text" id="inc-sezione" list="dl-sezioni"></div>
+      <label class="spunta" style="padding-bottom:8px"><input type="checkbox" id="inc-ht"> HT</label>
+    </div>
+    <textarea id="inc-testo" spellcheck="false" aria-label="Celle copiate da Excel"></textarea>
+    <label class="spunta"><input type="checkbox" id="inc-scambia"> Nelle mie celle la lunghezza viene prima della quantità</label>
+    <div class="piede">
+      <span id="inc-esito" class="totali"></span>
+      <span style="display:flex;gap:8px">
+        <button class="btn" id="inc-annulla" type="button">Annulla</button>
+        <button class="btn btn-primario" id="inc-ok" type="button">Aggiungi alla lista</button>
+      </span>
+    </div>
+  </div>
+</div>
+<input type="file" id="file-apri" accept=".json,application/json" hidden>
+<datalist id="dl-sezioni"></datalist>
+<datalist id="dl-progetti"></datalist>
+
+<!-- ============================ 3. MOTORE ============================ -->
+<script id="motore">
+/* =====================================================================
+   MOTORE DI CALCOLO — ottimizzazione dei tagli su una dimensione
+   ---------------------------------------------------------------------
+   Riceve i pezzi di UN gruppo (stessa sezione, stesso trattamento HT) e
+   le tavole grezze disponibili; restituisce gli schemi di taglio.
+
+   Come ragiona, in breve:
+   1. "Rilassamento lineare con generazione di colonne" (Gilmore-Gomory):
+      trova la miscela ideale di schemi ammettendo anche frazioni di
+      tavola. Dà due cose: gli schemi migliori e un LIMITE INFERIORE
+      dimostrato (meno di così non si può fare).
+   2. "Tuffi": gli schemi vengono fissati uno alla volta a numeri interi,
+      ricalcolando ogni volta la miscela ideale sui pezzi rimasti.
+   3. Gli ultimi pezzi (poche decine) vengono sistemati con una ricerca
+      esatta che prova tutte le combinazioni utili.
+   4. A parità di tavole si cercano le soluzioni con meno schemi e meno
+      pacchi da caricare (cioè meno spostamenti della battuta).
+   Tutte le misure sono in millimetri interi.
+   ===================================================================== */
+function creaMotore() {
+  'use strict';
+
+  const adesso = (typeof performance !== 'undefined' && performance.now)
+    ? function () { return performance.now(); }
+    : function () { return Date.now(); };
+
+  const GRANDE = 1000;      // costo delle variabili "artificiali" nel programma lineare
+  const FINALE_MAX = 28;    // con così pochi pezzi rimasti si passa alla ricerca esatta
+
+  /* Generatore di numeri casuali ripetibile: stessi dati = stesso piano */
+  function creaCasuale(seme) {
+    let a = seme >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function somma(v) { let s = 0; for (let i = 0; i < v.length; i++) s += v[i]; return s; }
+  function mcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
+
+  /* ------------------------------------------------------------------
+     1. PREPARAZIONE DEI DATI
+     Ogni pezzo "occupa" la sua lunghezza più lo spessore della lama;
+     la tavola "contiene" lunghezza - testatura + una lama (così l'ultimo
+     pezzo può finire a filo della tavola senza un taglio in più).
+     ------------------------------------------------------------------ */
+  function prepara(dati) {
+    const lama = Math.max(0, Math.round(Number(dati.lama) || 0));
+    const rifilo = Math.max(0, Math.round(Number(dati.rifilo) || 0));
+
+    // tavole: unisce le lunghezze uguali; quantità vuota = quante ne servono
+    const perTav = new Map();
+    for (const t of (dati.tavole || [])) {
+      const l = Math.round(Number(t.lung));
+      if (!(l > 0)) continue;
+      const illimitata = (t.qta === null || t.qta === undefined || t.qta === '' || t.qta === Infinity);
+      const q = illimitata ? Infinity : Math.max(0, Math.floor(Number(t.qta) || 0));
+      perTav.set(l, (perTav.get(l) || 0) + q);
+    }
+    // pezzi: unisce le lunghezze uguali (il progetto viene riassegnato dopo)
+    const perLung = new Map();
+    for (const p of (dati.pezzi || [])) {
+      const l = Math.round(Number(p.lung)), q = Math.round(Number(p.qta));
+      if (l > 0 && q > 0) perLung.set(l, (perLung.get(l) || 0) + q);
+    }
+    let lungTav = Array.from(perTav.keys())
+      .filter(function (l) { return perTav.get(l) > 0 && l - rifilo > 0; })
+      .sort(function (a, b) { return b - a; });
+    const utileMax = lungTav.length ? lungTav[0] - rifilo : 0;
+
+    const esclusi = [];   // pezzi più lunghi di qualsiasi tavola
+    const buone = [];
+    Array.from(perLung.keys()).sort(function (a, b) { return b - a; }).forEach(function (l) {
+      if (l > utileMax) esclusi.push({ lung: l, qta: perLung.get(l) }); else buone.push(l);
+    });
+    const m = buone.length;
+    if (m > 0) {          // le tavole più corte del pezzo più corto non servono
+      const minPezzo = buone[m - 1];
+      lungTav = lungTav.filter(function (l) { return l - rifilo >= minPezzo; });
+    }
+    const S = lungTav.length;
+
+    const ctx = {
+      lama: lama, rifilo: rifilo, m: m, S: S, esclusi: esclusi,
+      lung: new Int32Array(m), w: new Int32Array(m), d0: new Int32Array(m),
+      L: new Int32Array(S), C: new Int32Array(S), disp0: new Float64Array(S), costoN: new Float64Array(S),
+      Lmax: S ? lungTav[0] : 0, passo: 0, mono: S === 1,
+      pool: [], poolChiave: new Map(), nLP: 0
+    };
+    for (let i = 0; i < m; i++) { ctx.lung[i] = buone[i]; ctx.w[i] = buone[i] + lama; ctx.d0[i] = perLung.get(buone[i]); }
+    let g = 0, Cmax = 0;
+    for (let s = 0; s < S; s++) {
+      ctx.L[s] = lungTav[s]; ctx.C[s] = lungTav[s] - rifilo + lama;
+      ctx.disp0[s] = perTav.get(lungTav[s]); ctx.costoN[s] = lungTav[s] / ctx.Lmax;
+      g = mcd(g, lungTav[s]); if (ctx.C[s] > Cmax) Cmax = ctx.C[s];
+    }
+    ctx.passo = g || 1;   // ogni costo totale è un multiplo di questo valore
+
+    // memoria di lavoro per lo "zaino" (vedi sotto)
+    let passi = 0;
+    for (let i = 0; i < m; i++) {
+      const b = Math.min(ctx.d0[i], Math.floor(Cmax / ctx.w[i]));
+      passi += Math.floor(Math.log2(Math.max(1, b))) + 1;
+    }
+    ctx.zLargo = Cmax + 1;
+    ctx.zBest = new Float64Array(Cmax + 1);
+    ctx.zPresa = new Uint8Array(Math.max(1, passi) * (Cmax + 1));
+    ctx.zPezzo = new Int32Array(Math.max(1, passi));
+    ctx.zCopie = new Int32Array(Math.max(1, passi));
+    ctx.zPassi = 0;
+    return ctx;
+  }
+
+  /* ------------------------------------------------------------------
+     2. LO "ZAINO": dato un valore per ogni pezzo, trova la combinazione
+     di pezzi di maggior valore che entra in una tavola (ogni pezzo al
+     massimo tante volte quante ne restano da tagliare).
+     Programmazione dinamica sulla capienza in millimetri.
+     ------------------------------------------------------------------ */
+  function zaino(ctx, valori, limiti, Cmax) {
+    const m = ctx.m, w = ctx.w, best = ctx.zBest, presa = ctx.zPresa, largo = ctx.zLargo;
+    best.fill(0, 0, Cmax + 1);
+    let np = 0;
+    for (let i = 0; i < m; i++) {
+      const v = valori[i];
+      let b = limiti[i];
+      const wi = w[i];
+      if (!(v > 1e-12) || b <= 0 || wi > Cmax) continue;
+      const mx = Math.floor(Cmax / wi);
+      if (b > mx) b = mx;
+      let k = 1;
+      while (b > 0) {                 // le copie vengono raggruppate a 1, 2, 4, 8...
+        const q = k < b ? k : b; b -= q; k *= 2;
+        const pw = q * wi, pv = q * v, off = np * largo;
+        ctx.zPezzo[np] = i; ctx.zCopie[np] = q;
+        presa.fill(0, off, off + (pw < Cmax + 1 ? pw : Cmax + 1));
+        for (let c = Cmax; c >= pw; c--) {
+          const cand = best[c - pw] + pv;
+          if (cand > best[c] + 1e-13) { best[c] = cand; presa[off + c] = 1; } else presa[off + c] = 0;
+        }
+        np++;
+      }
+    }
+    ctx.zPassi = np;
+    return best;
+  }
+  /* Ricostruisce lo schema scelto dallo zaino per una data capienza */
+  function ricostruisci(ctx, cap) {
+    const a = new Int16Array(ctx.m);
+    let c = cap;
+    for (let p = ctx.zPassi - 1; p >= 0; p--) {
+      if (ctx.zPresa[p * ctx.zLargo + c]) {
+        const q = ctx.zCopie[p], i = ctx.zPezzo[p];
+        a[i] += q; c -= q * ctx.w[i];
+      }
+    }
+    return a;
+  }
+
+  /* Archivio degli schemi già scoperti (per non ricalcolarli) */
+  function aggiungiAlPool(ctx, s, a) {
+    const chiave = s + ':' + a.join(',');
+    let pi = ctx.poolChiave.get(chiave);
+    if (pi === undefined) {
+      let fill = 0, distinti = 0;
+      for (let i = 0; i < ctx.m; i++) if (a[i]) { fill += a[i] * ctx.w[i]; distinti++; }
+      pi = ctx.pool.length;
+      ctx.pool.push({ s: s, a: a, fill: fill, distinti: distinti });
+      ctx.poolChiave.set(chiave, pi);
+    }
+    return pi;
+  }
+  function ripetizioniMax(d, a) {
+    let n = Infinity;
+    for (let i = 0; i < a.length; i++) if (a[i] > 0) { const q = Math.floor(d[i] / a[i]); if (q < n) n = q; }
+    return n === Infinity ? 0 : n;
+  }
+  /* I costi totali sono multipli di ctx.passo: un limite inferiore si può arrotondare in su */
+  function arrotondaCosto(ctx, mm) {
+    if (!isFinite(mm)) return mm;
+    const g = ctx.passo, tol = 1e-6 * (mm + ctx.Lmax);
+    return Math.ceil((mm - tol) / g) * g;
+  }
+  /* Limite inferiore "a volume": legno necessario diviso capienza della tavola */
+  function limiteVolume(ctx, d, disp) {
+    let V = 0;
+    for (let i = 0; i < ctx.m; i++) V += d[i] * ctx.w[i];
+    if (V <= 0) return 0;
+    if (ctx.mono) return Math.ceil(V / ctx.C[0]) * ctx.L[0];
+    let r = Infinity, minL = Infinity;
+    for (let s = 0; s < ctx.S; s++) if (disp[s] > 0) {
+      const q = ctx.L[s] / ctx.C[s];
+      if (q < r) r = q;
+      if (ctx.L[s] < minL) minL = ctx.L[s];
+    }
+    if (r === Infinity) return Infinity;
+    return arrotondaCosto(ctx, Math.max(minL, V * r));
+  }
+
+  /* ------------------------------------------------------------------
+     3. PROGRAMMA LINEARE (metodo del simplesso "rivisto")
+        minimizza  somma costo_j * x_j
+        con        righe ">=" (domanda dei pezzi) e righe "<=" (scorte)
+     Matrice piccola (una riga per lunghezza diversa): si tiene in
+     memoria l'inversa della base e la si aggiorna a ogni passo.
+     Il programma resta in memoria per tutto il calcolo: quando cambiano
+     solo i pezzi rimasti (i termini noti) si riparte dalla soluzione
+     precedente con il simplesso "duale", che richiede pochi passi.
+     ------------------------------------------------------------------ */
+  function creaLP(M, tipo) {
+    const colIdx = [], colVal = [], costo = [], inBase = [];
+    const base = new Int32Array(M), baseIniziale = new Int32Array(M);
+    let Binv = new Float64Array(M * M);
+    const b = new Float64Array(M), xB = new Float64Array(M), y = new Float64Array(M), w = new Float64Array(M);
+    let daRifare = 0;
+
+    function aggiungi(idx, val, c) {
+      colIdx.push(idx); colVal.push(val); costo.push(c); inBase.push(0);
+      return costo.length - 1;
+    }
+    for (let r = 0; r < M; r++) {
+      if (tipo[r] > 0) { aggiungi([r], [-1], 0); baseIniziale[r] = aggiungi([r], [1], GRANDE); }   // eccedenza + artificiale
+      else baseIniziale[r] = aggiungi([r], [1], 0);                                               // scorta non usata
+    }
+    const nFisse = costo.length;
+
+    /* Riparte dalla base di partenza (artificiali e scorte): sempre ammissibile */
+    function reimposta() {
+      for (let j = 0; j < inBase.length; j++) inBase[j] = 0;
+      Binv.fill(0);
+      for (let r = 0; r < M; r++) { base[r] = baseIniziale[r]; inBase[base[r]] = 1; Binv[r * M + r] = 1; xB[r] = b[r]; }
+      daRifare = 0;
+    }
+    /* Nuovi termini noti (pezzi rimasti, scorte rimaste): la soluzione diventa Binv * b */
+    function termini(nuovi) {
+      for (let r = 0; r < M; r++) b[r] = nuovi[r];
+      for (let i = 0; i < M; i++) {
+        let s = 0; const o = i * M;
+        for (let k = 0; k < M; k++) s += Binv[o + k] * b[k];
+        xB[i] = s;
+      }
+    }
+    /* Ricalcola da zero l'inversa della base (pulizia degli errori di arrotondamento) */
+    function rifattorizza() {
+      const A = new Float64Array(M * M), I = new Float64Array(M * M);
+      for (let i = 0; i < M; i++) {
+        const j = base[i], ix = colIdx[j], vv = colVal[j];
+        for (let t = 0; t < ix.length; t++) A[ix[t] * M + i] = vv[t];
+        I[i * M + i] = 1;
+      }
+      for (let c = 0; c < M; c++) {
+        let p = c, mx = Math.abs(A[c * M + c]);
+        for (let r = c + 1; r < M; r++) { const v = Math.abs(A[r * M + c]); if (v > mx) { mx = v; p = r; } }
+        if (mx < 1e-11) return false;
+        if (p !== c) {
+          for (let k = 0; k < M; k++) {
+            let t = A[c * M + k]; A[c * M + k] = A[p * M + k]; A[p * M + k] = t;
+            t = I[c * M + k]; I[c * M + k] = I[p * M + k]; I[p * M + k] = t;
+          }
+        }
+        const dv = A[c * M + c];
+        for (let k = 0; k < M; k++) { A[c * M + k] /= dv; I[c * M + k] /= dv; }
+        for (let r = 0; r < M; r++) {
+          if (r === c) continue;
+          const f = A[r * M + c];
+          if (f !== 0) for (let k = 0; k < M; k++) { A[r * M + k] -= f * A[c * M + k]; I[r * M + k] -= f * I[c * M + k]; }
+        }
+      }
+      Binv = I;
+      for (let i = 0; i < M; i++) {
+        let s = 0; const o = i * M;
+        for (let k = 0; k < M; k++) s += Binv[o + k] * b[k];
+        xB[i] = (s < 0 && s > -1e-9) ? 0 : s;
+      }
+      return true;
+    }
+    function calcolaDuali() {
+      y.fill(0);
+      for (let i = 0; i < M; i++) {
+        const cb = costo[base[i]];
+        if (cb !== 0) { const o = i * M; for (let k = 0; k < M; k++) y[k] += cb * Binv[o + k]; }
+      }
+      return y;
+    }
+    function direzione(q) {          // w = Binv * colonna q
+      const ix = colIdx[q], vv = colVal[q];
+      for (let i = 0; i < M; i++) {
+        let s = 0; const o = i * M;
+        for (let t = 0; t < ix.length; t++) s += Binv[o + ix[t]] * vv[t];
+        w[i] = s;
+      }
+    }
+    function scambia(r, q) {         // la colonna q entra in base al posto della riga r
+      const piv = w[r], or = r * M, th = xB[r] / piv;
+      for (let k = 0; k < M; k++) Binv[or + k] /= piv;
+      for (let i = 0; i < M; i++) {
+        if (i === r) continue;
+        const f = w[i];
+        if (f !== 0) {
+          const o = i * M;
+          for (let k = 0; k < M; k++) Binv[o + k] -= f * Binv[or + k];
+          xB[i] -= f * th;
+        }
+      }
+      xB[r] = th;
+      inBase[base[r]] = 0; base[r] = q; inBase[q] = 1;
+      if (++daRifare >= 60) { daRifare = 0; return rifattorizza(); }
+      return true;
+    }
+    /* Simplesso primale: porta la soluzione all'ottimo. false = problemi numerici */
+    function ottimizza(maxIter) {
+      let degeneri = 0, bland = false;
+      for (let iter = 0; iter < maxIter; iter++) {
+        calcolaDuali();
+        let q = -1, migliore = -1e-9;      // colonna che conviene far entrare
+        const n = costo.length;
+        for (let j = 0; j < n; j++) {
+          if (inBase[j]) continue;
+          let rc = costo[j];
+          const ix = colIdx[j], vv = colVal[j];
+          for (let t = 0; t < ix.length; t++) rc -= y[ix[t]] * vv[t];
+          if (rc < migliore) { q = j; if (bland) break; migliore = rc; }
+        }
+        if (q < 0) return true;
+        direzione(q);
+        let r = -1, theta = Infinity;       // riga che esce (rapporto minimo)
+        for (let i = 0; i < M; i++) {
+          if (w[i] > 1e-9) {
+            const t = xB[i] / w[i];
+            if (t < theta - 1e-12) { theta = t; r = i; }
+            else if (t <= theta + 1e-12 && (bland ? base[i] < base[r] : w[i] > w[r])) { if (t < theta) theta = t; r = i; }
+          }
+        }
+        if (r < 0) return false;
+        if (theta < 1e-11) { if (++degeneri > 40) bland = true; } else { degeneri = 0; bland = false; }
+        if (!scambia(r, q)) return false;
+        for (let i = 0; i < M; i++) if (xB[i] < 0) xB[i] = 0;
+      }
+      return false;
+    }
+    /* Simplesso duale: dopo un cambio dei termini noti rende di nuovo ammissibile la soluzione */
+    function ripristina(maxIter) {
+      for (let iter = 0; iter < maxIter; iter++) {
+        let r = -1, minv = -1e-7;
+        for (let i = 0; i < M; i++) if (xB[i] < minv) { minv = xB[i]; r = i; }
+        if (r < 0) { for (let i = 0; i < M; i++) if (xB[i] < 0) xB[i] = 0; return true; }
+        calcolaDuali();
+        const or = r * M, n = costo.length;
+        let q = -1, best = Infinity, alfaQ = 0;
+        for (let j = 0; j < n; j++) {
+          if (inBase[j]) continue;
+          const ix = colIdx[j], vv = colVal[j];
+          let alfa = 0;
+          for (let t = 0; t < ix.length; t++) alfa += Binv[or + ix[t]] * vv[t];
+          if (alfa < -1e-9) {
+            let rc = costo[j];
+            for (let t = 0; t < ix.length; t++) rc -= y[ix[t]] * vv[t];
+            if (rc < 0) rc = 0;
+            const rap = rc / -alfa;
+            if (rap < best - 1e-12 || (rap <= best + 1e-12 && alfa < alfaQ)) { best = rap; q = j; alfaQ = alfa; }
+          }
+        }
+        if (q < 0) return false;
+        direzione(q);
+        if (!scambia(r, q)) return false;
+      }
+      return false;
+    }
+    reimposta();
+    return {
+      aggiungi: aggiungi, ottimizza: ottimizza, ripristina: ripristina, reimposta: reimposta,
+      termini: termini, duali: calcolaDuali, nFisse: nFisse,
+      colonne: function () { return costo.length; },
+      salva: function () { return { base: Int32Array.from(base), Binv: Float64Array.from(Binv) }; },   // fotografia della base
+      carica: function (f) {                                                                       // ritorno a una fotografia
+        for (let j = 0; j < inBase.length; j++) inBase[j] = 0;
+        for (let r = 0; r < M; r++) { base[r] = f.base[r]; inBase[base[r]] = 1; }
+        Binv.set(f.Binv); daRifare = 0;
+      },
+      valore: function () { let z = 0; for (let i = 0; i < M; i++) z += costo[base[i]] * xB[i]; return z; },
+      artificialeAttiva: function () {
+        for (let i = 0; i < M; i++) if (costo[base[i]] === GRANDE && xB[i] > 1e-7) return true;
+        return false;
+      },
+      soluzione: function () {      // [indice colonna, valore] delle colonne "vere" in base
+        const out = [];
+        for (let i = 0; i < M; i++) if (base[i] >= nFisse && xB[i] > 1e-9) out.push([base[i], xB[i]]);
+        return out;
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------
+     4. RILASSAMENTO CON GENERAZIONE DI COLONNE
+     Dati i pezzi rimasti (d) e le tavole rimaste (disp), trova la
+     miscela ideale di schemi ammettendo anche frazioni di tavola.
+     Parte dagli schemi già noti e ne aggiunge di nuovi finché lo zaino
+     non trova più nulla di conveniente. Restituisce:
+       x      = quante volte (anche frazioni) usare ogni schema
+       prezzi = quanto "vale" ogni pezzo nella miscela ideale
+       lb     = limite inferiore dimostrato (in "tavole più lunghe")
+     Con soloNoti = true dà solo una stima veloce (per eccesso) usando
+     gli schemi già scoperti: serve per scartare in fretta le scelte
+     chiaramente troppo costose.
+     ------------------------------------------------------------------ */
+  function risolviRilassato(ctx, d, disp, scadenza, soloNoti, partenza) {
+    const m = ctx.m, S = ctx.S, C = ctx.C;
+    ctx.nLP++;
+    if (!ctx.lp) {                    // prima chiamata: una riga per lunghezza, una per ogni scorta limitata
+      const tipo = [];
+      for (let i = 0; i < m; i++) tipo.push(1);
+      ctx.rigaTav = new Int32Array(S).fill(-1);
+      for (let s = 0; s < S; s++) if (isFinite(ctx.disp0[s])) { ctx.rigaTav[s] = tipo.length; tipo.push(-1); }
+      ctx.M = tipo.length;
+      ctx.lp = creaLP(ctx.M, tipo);
+      ctx.nelLP = 0;                  // quanti schemi dell'archivio sono già nel programma
+      ctx.bLP = new Float64Array(ctx.M);
+      ctx.valLP = new Float64Array(m);
+      ctx.lpPronto = false;
+    }
+    const lp = ctx.lp, rigaTav = ctx.rigaTav, b = ctx.bLP, valori = ctx.valLP;
+    function allinea() {              // porta nel programma gli schemi nuovi dell'archivio
+      for (; ctx.nelLP < ctx.pool.length; ctx.nelLP++) {
+        const col = ctx.pool[ctx.nelLP], idx = [], val = [];
+        for (let i = 0; i < m; i++) if (col.a[i]) { idx.push(i); val.push(col.a[i]); }
+        if (rigaTav[col.s] >= 0) { idx.push(rigaTav[col.s]); val.push(1); }
+        lp.aggiungi(idx, val, ctx.costoN[col.s]);
+      }
+    }
+    let Cmax = 0, qualcuna = false;
+    for (let s = 0; s < S; s++) if (disp[s] > 0) { qualcuna = true; if (C[s] > Cmax) Cmax = C[s]; }
+    if (!qualcuna) return { impossibile: true };
+    for (let i = 0; i < m; i++) { b[i] = d[i]; if (d[i] > 0 && ctx.w[i] > Cmax) return { impossibile: true }; }
+    for (let s = 0; s < S; s++) if (rigaTav[s] >= 0) b[rigaTav[s]] = Math.max(0, disp[s]);
+
+    allinea();
+    if (partenza && ctx.lpPronto) lp.carica(partenza);
+    lp.termini(b);
+    // si riparte dalla soluzione precedente; se qualcosa va storto, dalla base di partenza
+    if (!ctx.lpPronto || !lp.ripristina(20000)) lp.reimposta();
+    ctx.lpPronto = true;
+
+    let convergente = false, rho = 1, y = null;
+    if (soloNoti) {                   // stima veloce: solo gli schemi già noti, senza cercarne di nuovi
+      if (!lp.ottimizza(50000)) { lp.reimposta(); if (!lp.ottimizza(200000)) throw new Error('programma lineare non risolto'); }
+      if (lp.artificialeAttiva()) return { impossibile: true, stima: true };
+      y = lp.duali();
+      const pr = new Float64Array(m);
+      for (let i = 0; i < m; i++) if (d[i] > 0) pr[i] = Math.max(0, y[i]);
+      const zs = lp.valore();
+      return { z: zs, lb: zs, x: lp.soluzione().map(function (e) { return { pi: e[0] - lp.nFisse, val: e[1] }; }), prezzi: pr, convergente: false, stima: true };
+    }
+    for (let giro = 0; giro < 100000; giro++) {
+      if (!lp.ottimizza(50000)) {
+        lp.reimposta();
+        if (!lp.ottimizza(200000)) throw new Error('programma lineare non risolto');
+      }
+      y = lp.duali();
+      for (let i = 0; i < m; i++) valori[i] = d[i] > 0 ? Math.max(0, y[i]) : 0;
+      const best = zaino(ctx, valori, d, Cmax);
+      const prima = ctx.pool.length;
+      rho = 1;
+      for (let s = 0; s < S; s++) {
+        if (!(disp[s] > 0)) continue;
+        const soglia = ctx.costoN[s] - (rigaTav[s] >= 0 ? Math.min(0, y[rigaTav[s]]) : 0);
+        const V = best[C[s]];
+        if (V > soglia + 1e-9) {
+          if (V / soglia > rho) rho = V / soglia;
+          aggiungiAlPool(ctx, s, ricostruisci(ctx, C[s]));
+        }
+      }
+      if (ctx.pool.length === prima) { convergente = true; break; }   // nessuno schema nuovo: è l'ottimo
+      allinea();
+      if (adesso() > scadenza) break;
+    }
+    if (lp.artificialeAttiva()) return { impossibile: true };
+    // limite inferiore certificato dai prezzi duali (vale anche se ci si è fermati prima)
+    const prezzi = new Float64Array(m);
+    let lb = 0;
+    for (let i = 0; i < m; i++) if (d[i] > 0) { prezzi[i] = Math.max(0, y[i]); lb += prezzi[i] * d[i]; }
+    lb /= rho;
+    for (let s = 0; s < S; s++) if (rigaTav[s] >= 0) lb += Math.min(0, y[rigaTav[s]]) * Math.max(0, disp[s]);
+    const x = lp.soluzione().map(function (e) { return { pi: e[0] - lp.nFisse, val: e[1] }; });
+    return { z: lp.valore(), lb: lb, x: x, prezzi: prezzi, convergente: convergente };
+  }
+
+  /* ------------------------------------------------------------------
+     5. RICERCA ESATTA PER GLI ULTIMI PEZZI
+     Prende il pezzo più lungo rimasto, prova tutti i modi "pieni" di
+     completare la sua tavola (dal più pieno al meno pieno) e prosegue.
+     Scarta i rami che non possono più rientrare nel costo ammesso.
+     ------------------------------------------------------------------ */
+  function finaleEsatto(ctx, d0, disp0, budget, primo, scadenza, maxNodi) {
+    const m = ctx.m, w = ctx.w, L = ctx.L, C = ctx.C, S = ctx.S;
+    const d = Int32Array.from(d0), disp = Float64Array.from(disp0);
+    let vol = 0;
+    for (let i = 0; i < m; i++) vol += d[i] * w[i];
+    const tavole = [];
+    let minRapporto = Infinity;
+    for (let s = S - 1; s >= 0; s--) if (disp[s] > 0) {     // dalla tavola più corta
+      tavole.push(s);
+      if (L[s] / C[s] < minRapporto) minRapporto = L[s] / C[s];
+    }
+    function restoMinimo(V) {
+      if (V <= 0) return 0;
+      if (ctx.mono) return Math.ceil(V / C[0]) * L[0];
+      return Math.ceil(V * minRapporto - 1e-6);
+    }
+    let soglia = budget + 1;          // si accettano costi <= budget (i costi sono interi)
+    let migliori = null, nodi = 0, completo = true, stop = false;
+    const corrente = [], falliti = new Map();
+    const a = new Int16Array(m);
+    const MAX_RIEMP = 400, MAX_VISITE = 6000;
+
+    function elenca(i, cap) {         // tutti i completamenti "pieni" della tavola che contiene il pezzo i
+      const lista = [];
+      let visite = 0;
+      let ultimo = i;
+      for (let t = m - 1; t > i; t--) if (d[t] > 0) { ultimo = t; break; }
+      function gen(t, resto, fill) {
+        if (++visite > MAX_VISITE || lista.length >= MAX_RIEMP) { completo = false; return; }
+        if (t > ultimo) {
+          for (let u = ultimo; u >= i; u--) {
+            if (d[u] - a[u] > 0) { if (w[u] <= resto) return; break; }
+          }
+          lista.push({ a: a.slice(), fill: fill });
+          return;
+        }
+        const liberi = d[t] - (t === i ? 1 : 0);
+        const cmax = Math.min(liberi, Math.floor(resto / w[t]));
+        const cmin = (t === ultimo) ? cmax : 0;     // dell'ultimo tipo si prende sempre il massimo
+        for (let c = cmax; c >= cmin; c--) {
+          a[t] += c;
+          gen(t + 1, resto - c * w[t], fill + c * w[t]);
+          a[t] -= c;
+        }
+      }
+      a.fill(0); a[i] = 1;
+      gen(i, cap - w[i], w[i]);
+      lista.sort(function (p, q) { return q.fill - p.fill; });
+      return lista;
+    }
+    function dfs(usato) {
+      let i = 0;
+      while (i < m && d[i] === 0) i++;
+      if (i === m) {
+        if (usato < soglia) {
+          soglia = usato;
+          migliori = corrente.map(function (c) { return { s: c.s, a: c.a, n: 1 }; });
+          if (primo) stop = true;
+        }
+        return;
+      }
+      if (++nodi > maxNodi || ((nodi & 31) === 0 && adesso() > scadenza)) { completo = false; stop = true; return; }
+      if (usato + restoMinimo(vol) >= soglia) return;
+      const chiave = ctx.mono ? d.join(',') : d.join(',') + '|' + disp.join(',');
+      const f = falliti.get(chiave);
+      if (f !== undefined && usato >= f) return;
+      for (let k = 0; k < tavole.length; k++) {
+        const s = tavole[k];
+        if (!(disp[s] > 0) || C[s] < w[i]) continue;
+        if (usato + L[s] + restoMinimo(vol - C[s]) >= soglia) continue;
+        const lista = elenca(i, C[s]);
+        for (let q = 0; q < lista.length; q++) {
+          const r = lista[q];
+          if (usato + L[s] + restoMinimo(vol - r.fill) >= soglia) break;
+          for (let t = i; t < m; t++) d[t] -= r.a[t];
+          vol -= r.fill; disp[s]--;
+          corrente.push({ s: s, a: r.a });
+          dfs(usato + L[s]);
+          corrente.pop();
+          disp[s]++; vol += r.fill;
+          for (let t = i; t < m; t++) d[t] += r.a[t];
+          if (stop) return;
+        }
+      }
+      if (f === undefined || usato < f) falliti.set(chiave, usato);
+    }
+    dfs(0);
+    return { parti: migliori, costo: migliori ? soglia : Infinity, completo: completo };
+  }
+
+  /* ------------------------------------------------------------------
+     6. SOLUZIONE DI RISERVA "GOLOSA"
+     Sceglie ogni volta lo schema che riempie meglio la tavola e lo
+     ripete finché può. Semplice e sempre disponibile.
+     ------------------------------------------------------------------ */
+  function golosa(ctx) {
+    const d = Int32Array.from(ctx.d0), disp = Float64Array.from(ctx.disp0);
+    const valori = Float64Array.from(ctx.w), parti = [];
+    let costo = 0;
+    for (;;) {
+      if (somma(d) === 0) break;
+      let Cmax = 0;
+      for (let s = 0; s < ctx.S; s++) if (disp[s] > 0 && ctx.C[s] > Cmax) Cmax = ctx.C[s];
+      if (Cmax === 0) break;
+      const best = zaino(ctx, valori, d, Cmax);
+      let sM = -1, rap = Infinity;
+      for (let s = 0; s < ctx.S; s++) {
+        if (!(disp[s] > 0)) continue;
+        const fill = best[ctx.C[s]];
+        if (fill <= 0) continue;
+        const r = ctx.L[s] / fill;
+        if (r < rap - 1e-12) { rap = r; sM = s; }
+      }
+      if (sM < 0) break;
+      const a = ricostruisci(ctx, ctx.C[sM]);
+      const n = Math.min(ripetizioniMax(d, a), disp[sM]);
+      if (n < 1) break;
+      for (let i = 0; i < ctx.m; i++) d[i] -= n * a[i];
+      disp[sM] -= n; costo += n * ctx.L[sM];
+      parti.push({ s: sM, a: a, n: n });
+    }
+    return { parti: parti, costo: costo, resto: d };
+  }
+
+  /* ------------------------------------------------------------------
+     7. TUFFO CLASSICO: fissa in blocco la parte intera della miscela
+     ideale, ricalcola sui pezzi rimasti, e così via. Veloce e quasi
+     sempre vicinissimo al minimo.
+     ------------------------------------------------------------------ */
+  function tuffoClassico(ctx, scadenza, casuale) {
+    const d = Int32Array.from(ctx.d0), disp = Float64Array.from(ctx.disp0), parti = [];
+    let costo = 0;
+    function fissa(col, n) {
+      for (let i = 0; i < ctx.m; i++) d[i] -= n * col.a[i];
+      disp[col.s] -= n; costo += n * ctx.L[col.s];
+      parti.push({ s: col.s, a: col.a, n: n });
+    }
+    for (;;) {
+      const tot = somma(d);
+      if (tot === 0) break;
+      if (adesso() > scadenza) return null;
+      if (tot <= FINALE_MAX) {
+        const fin = finaleEsatto(ctx, d, disp, Infinity, false, scadenza, 20000);
+        if (fin.parti) { for (const p of fin.parti) parti.push(p); costo += fin.costo; d.fill(0); break; }
+      }
+      const lp = risolviRilassato(ctx, d, disp, scadenza);
+      if (lp.impossibile) return null;
+      const xs = lp.x.slice().sort(function (p, q) { return q.val - p.val; });
+      let fissato = false;
+      for (const e of xs) {
+        const col = ctx.pool[e.pi];
+        let n = Math.floor(e.val + 1e-7);
+        if (n < 1) break;
+        n = Math.min(n, ripetizioniMax(d, col.a), disp[col.s]);
+        if (casuale && fissato && casuale() < 0.3) continue;     // variazione: ogni tanto uno schema si lascia per dopo
+        if (n >= 1) { fissa(col, n); fissato = true; }
+      }
+      if (!fissato) {               // solo frazioni: si arrotonda in su la più grande
+        for (const e of xs) {
+          const col = ctx.pool[e.pi];
+          if (Math.min(ripetizioniMax(d, col.a), disp[col.s]) >= 1) { fissa(col, 1); fissato = true; break; }
+        }
+      }
+      if (!fissato) {               // schemi che darebbero più pezzi del necessario: si accorciano
+        for (const e of xs) {
+          const col = ctx.pool[e.pi];
+          if (!(disp[col.s] >= 1)) continue;
+          const a = new Int16Array(ctx.m);
+          let pieno = false;
+          for (let i = 0; i < ctx.m; i++) { a[i] = Math.min(col.a[i], d[i]); if (a[i] > 0) pieno = true; }
+          if (pieno) { fissa({ s: col.s, a: a }, 1); fissato = true; break; }
+        }
+        if (!fissato) return null;
+      }
+    }
+    return { parti: parti, costo: costo, resto: d };
+  }
+
+  /* ------------------------------------------------------------------
+     8. TUFFO GUIDATO: costruisce il piano uno schema alla volta,
+     scegliendo ogni volta lo schema che "smaltisce" più legno per unità
+     di lavoro (schemi ripetuti molte volte, pacchi pieni, poche misure
+     diverse). Uno schema viene accettato solo se i pezzi che restano
+     possono ancora stare nel costo ammesso: lo dice il limite inferiore
+     finché i pezzi sono tanti, la ricerca esatta quando sono pochi.
+     ------------------------------------------------------------------ */
+  function tuffoGuidato(ctx, budget, casuale, scadenza, opz) {
+    const m = ctx.m, L = ctx.L, C = ctx.C, w = ctx.w, pacco = opz.pacco;
+    const cache = new Map();
+    const VUOTO = { vuoto: true };
+    const valFill = Float64Array.from(w);
+    const limiti = new Int32Array(m);
+    let nodi = 0, scaduto = false;
+    let partenza = null;    // fotografia del programma lineare del nodo in esame
+    let riservaMM = 0;      // parte della riserva che va lasciata intatta per sistemare gli ultimi pezzi
+
+    /* I pezzi rimasti si possono ancora sistemare senza superare il costo ammesso? */
+    function stato(d, disp, usato) {
+      if (usato > budget) return null;
+      const tot = somma(d);
+      if (tot === 0) return VUOTO;
+      if (usato + limiteVolume(ctx, d, disp) > budget) return null;
+      const k = usato + '|' + d.join(',') + '|' + disp.join(',');
+      let st = cache.get(k);
+      if (st !== undefined) return st;
+      st = null;
+      let deciso = false;
+      if (tot <= FINALE_MAX) {
+        const fin = finaleEsatto(ctx, d, disp, budget - usato, true, scadenza, 3000);
+        if (fin.parti) { st = { esatto: raggruppa(fin.parti) }; deciso = true; }
+        else if (fin.completo) deciso = true;
+      }
+      if (!deciso) {
+        let lp = risolviRilassato(ctx, d, disp, scadenza, true, partenza);   // prima la stima veloce...
+        if (lp.impossibile || (usato + arrotondaCosto(ctx, lp.z * ctx.Lmax) > budget &&
+            usato + lp.z * ctx.Lmax <= budget + 0.3 * ctx.Lmax)) {
+          lp = risolviRilassato(ctx, d, disp, scadenza, false, partenza);    // ...e il calcolo completo solo nei casi dubbi
+        }
+        if (!lp.impossibile && usato + arrotondaCosto(ctx, lp.lb * ctx.Lmax) <= budget &&
+            usato + lp.z * ctx.Lmax <= budget - riservaMM + 1e-6) st = { lp: lp };
+      }
+      cache.set(k, st);
+      return st;
+    }
+    function prova(c, n, d, disp, usato) {
+      const d2 = Int32Array.from(d), disp2 = Float64Array.from(disp);
+      for (let i = 0; i < m; i++) d2[i] -= n * c.a[i];
+      disp2[c.s] -= n;
+      const st = stato(d2, disp2, usato + n * L[c.s]);
+      return st ? { c: c, n: n, st: st, d: d2, disp: disp2, p: 0 } : null;
+    }
+    /* Il maggior numero di ripetizioni dello schema c ancora ammissibile */
+    function massimo(c, d, disp, usato) {
+      let r = prova(c, c.nmax, d, disp, usato);
+      if (r || c.nmax === 1) return r;
+      let lo = Math.min(c.nmax - 1, Math.floor(c.x + 1e-7)), rlo = null;
+      const hi0 = c.nmax - 1;
+      if (lo >= 1) { rlo = prova(c, lo, d, disp, usato); if (!rlo) lo = 0; }
+      if (lo < 1) { rlo = prova(c, 1, d, disp, usato); if (!rlo) return null; lo = 1; }
+      let hi = hi0;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        r = prova(c, mid, d, disp, usato);
+        if (r) { lo = mid; rlo = r; } else hi = mid - 1;
+      }
+      return rlo;
+    }
+    /* Legno smaltito per unità di lavoro: 2 per lo schema nuovo, 2 per ogni pacco, 1 per ogni misura */
+    function punti(c, n) { return n * c.fill / (2 + (2 + c.k) * Math.ceil(n / pacco)); }
+
+    function rec(d, disp, usato, st) {
+      if (adesso() > scadenza) { scaduto = true; opz.scaduto = true; return null; }
+      if (++nodi > opz.maxNodi) { scaduto = true; return null; }
+      if (somma(d) === 0) return [];
+      if (!st) { st = stato(d, disp, usato); if (!st) return null; }
+      let foto = null;
+      if (st.lp) {                        // miscela ideale vera di questo nodo, e fotografia da cui ripartire
+        partenza = null;
+        const pieno = risolviRilassato(ctx, d, disp, scadenza, false);
+        if (!pieno.impossibile) st.lp = pieno;
+        foto = ctx.lp.salva();
+      }
+
+      // riserva = costo ammesso - (già speso + miscela ideale dei pezzi rimasti)
+      const zQui = st.lp ? st.lp.z * ctx.Lmax : 0;
+      const margine = st.lp ? budget - riservaMM - usato - zQui : 0;
+      function freno(sc) {                // 1 = non consuma riserva, verso 0 = la consuma tutta
+        if (!(margine > 1e-6) || !sc.st || !sc.st.lp) return 1;
+        const f = 1 - (sc.n * L[sc.c.s] + sc.st.lp.z * ctx.Lmax - zQui) / margine;
+        return f < 0.02 ? 0.02 : (f > 1 ? 1 : Math.pow(f, opz.gamma));
+      }
+      // --- candidati ---
+      const mappa = new Map();
+      function metti(s, a, x) {
+        const key = s + ':' + a.join(',');
+        let c = mappa.get(key);
+        if (c) { if (x > c.x) c.x = x; return; }
+        const nmax = Math.min(ripetizioniMax(d, a), disp[s]);
+        if (nmax < 1) return;
+        let fill = 0, k = 0;
+        for (let i = 0; i < m; i++) if (a[i]) { fill += a[i] * w[i]; k++; }
+        if (k === 0) return;
+        c = { s: s, a: a, x: x, nmax: nmax, fill: fill, k: k, ott: 0 };
+        c.ott = punti(c, nmax);
+        if (pacco > 1 && nmax > pacco) c.ott = Math.max(c.ott, punti(c, Math.floor(nmax / pacco) * pacco));
+        mappa.set(key, c);
+      }
+      // (1) gli schemi della miscela ideale, (2) quelli della sistemazione esatta
+      if (st.lp) for (const e of st.lp.x) { const col = ctx.pool[e.pi]; metti(col.s, col.a, e.val); }
+      if (st.esatto) for (const p of st.esatto) metti(p.s, p.a, p.n);
+      // (3) schemi "ripetibili": per ogni numero di ripetizioni n, il miglior
+      //     riempimento usando ogni pezzo al massimo (pezzi rimasti / n) volte
+      const insieme = new Set([1]);
+      let dmax = 0;
+      for (let i = 0; i < m; i++) if (d[i] > 0) {
+        if (d[i] > dmax) dmax = d[i];
+        for (let k = 1; k <= 3; k++) { const v = Math.floor(d[i] / k); if (v >= 1) insieme.add(v); }
+      }
+      if (pacco > 1) for (let q = pacco; q <= dmax; q += pacco) insieme.add(q);
+      let ns = Array.from(insieme).sort(function (p, q) { return q - p; });
+      if (ns.length > opz.maxSoglie) ns = ns.slice(0, opz.maxSoglie);
+      for (let s = 0; s < ctx.S; s++) {
+        if (!(disp[s] > 0)) continue;
+        for (const n of ns) {
+          if (n > disp[s]) continue;
+          let qualcuno = false;
+          for (let i = 0; i < m; i++) { limiti[i] = Math.floor(d[i] / n); if (limiti[i] > 0) qualcuno = true; }
+          if (!qualcuno) continue;
+          zaino(ctx, valFill, limiti, C[s]);
+          metti(s, ricostruisci(ctx, C[s]), 0);
+          if (st.lp) { zaino(ctx, st.lp.prezzi, limiti, C[s]); metti(s, ricostruisci(ctx, C[s]), 0); }
+        }
+      }
+
+      // --- valutazione: dal più promettente, quante ripetizioni sono davvero ammissibili ---
+      const lista = Array.from(mappa.values()).sort(function (p, q) { return q.ott - p.ott; });
+      const scelte = [];
+      let valutati = 0, migliore = 0;
+      for (const c of lista) {
+        if (scelte.length > 0 && (c.ott <= migliore || valutati >= opz.maxValutati)) break;
+        partenza = foto;
+        const r = massimo(c, d, disp, usato);
+        valutati++;
+        if (scaduto) return null;
+        if (!r) continue;
+        const fr = freno(r);
+        r.p = punti(c, r.n) * fr * (casuale ? 1 + opz.rumore * casuale() : 1);
+        scelte.push(r);
+        if (r.p > migliore) migliore = r.p;
+        if (pacco > 1 && r.n > pacco && r.n % pacco !== 0) {      // variante: solo pacchi pieni
+          const n2 = Math.floor(r.n / pacco) * pacco;
+          const v = { c: c, n: n2, st: null, d: null, disp: null, p: punti(c, n2) * fr * (casuale ? 1 + opz.rumore * casuale() : 1) };
+          scelte.push(v);
+          if (v.p > migliore) migliore = v.p;
+        }
+      }
+      scelte.sort(function (p, q) { return q.p - p.p; });
+      let prove = 0;
+      for (const sc of scelte) {
+        if (!sc.d) {
+          partenza = foto;
+          const r = prova(sc.c, sc.n, d, disp, usato);
+          if (!r) continue;
+          sc.d = r.d; sc.disp = r.disp; sc.st = r.st;
+        }
+        const sotto = rec(sc.d, sc.disp, usato + sc.n * L[sc.c.s], sc.st);
+        if (sotto) { sotto.push({ s: sc.c.s, a: sc.c.a, n: sc.n }); return sotto; }
+        if (scaduto) return null;
+        if (++prove >= opz.alternative) break;
+      }
+      return null;
+    }
+
+    const st0 = stato(ctx.d0, ctx.disp0, 0);
+    if (!st0) return null;
+    if (st0.lp) riservaMM = opz.riserva * Math.max(0, budget - st0.lp.z * ctx.Lmax);
+    const parti = rec(ctx.d0, ctx.disp0, 0, st0);
+    if (!parti) return null;
+    let costo = 0;
+    for (const p of parti) costo += p.n * L[p.s];
+    return { parti: parti, costo: costo, resto: new Int32Array(m) };
+  }
+
+  /* ------------------------------------------------------------------
+     9. MISURE DI UNA SOLUZIONE
+     ------------------------------------------------------------------ */
+  function raggruppa(parti) {                 // unisce gli schemi identici
+    const mappa = new Map();
+    for (const p of parti) {
+      const k = p.s + ':' + p.a.join(',');
+      const e = mappa.get(k);
+      if (e) e.n += p.n; else mappa.set(k, { s: p.s, a: p.a, n: p.n });
+    }
+    return Array.from(mappa.values());
+  }
+  function sfridoDi(ctx, p) {                 // quello che resta in mano dopo l'ultimo taglio
+    let fill = 0;
+    for (let i = 0; i < ctx.m; i++) fill += p.a[i] * ctx.w[i];
+    const avanzo = ctx.C[p.s] - fill;         // legno oltre l'ultimo pezzo, prima dell'ultimo taglio
+    return avanzo > ctx.lama ? avanzo - ctx.lama : 0;
+  }
+  function misura(ctx, sol, pacco, sfridoMin) {
+    sol.parti = raggruppa(sol.parti);
+    let pacchi = 0, cambi = 0, recupero = 0, tavole = 0;
+    for (const p of sol.parti) {
+      let k = 0;
+      for (let i = 0; i < ctx.m; i++) if (p.a[i]) k++;
+      const np = Math.ceil(p.n / pacco);
+      pacchi += np; cambi += np * k; tavole += p.n;
+      const sf = sfridoDi(ctx, p);
+      if (sf >= sfridoMin) recupero += sf * p.n;
+    }
+    let mancanti = 0;
+    for (let i = 0; i < ctx.m; i++) mancanti += sol.resto[i] * ctx.w[i];
+    sol.pacchi = pacchi; sol.cambi = cambi; sol.lavoro = 2 * sol.parti.length + 2 * pacchi + cambi;
+    sol.recupero = recupero; sol.tavole = tavole; sol.mancanti = mancanti;
+    return sol;
+  }
+
+  /* ------------------------------------------------------------------
+     10. PROCEDURA PRINCIPALE
+     dati = { pezzi:[{lung,qta}], tavole:[{lung,qta}], lama, rifilo,
+              sfridoMin, pacco, tempoMs, seme, extraMax }
+     (debug, opz, pazienza, maxTuffi, interno sono parametri interni,
+     usati solo nel collaudo e nei calcoli annidati)
+     Risultato: il piano con meno legno (schemi, tavole, pacchi...) e,
+     in "alternative", gli eventuali piani che con qualche tavola in più
+     richiedono molti meno schemi.
+     ------------------------------------------------------------------ */
+  function risolviGruppo(dati) {
+    const t0 = adesso();
+    const ctx = prepara(dati);
+    const pacco = Math.max(1, Math.round(Number(dati.pacco) || 1));
+    const sfridoMin = Math.max(0, Number(dati.sfridoMin) || 0);
+    const tempo = Math.max(200, Number(dati.tempoMs) || 2500);
+    const scad = t0 + tempo;
+    const esito = {
+      schemi: [], alternative: [], nonPiazzati: ctx.esclusi.slice(), tavole: 0, costoMM: 0,
+      volumeMM: 0, minimoVolumeMM: 0, limiteMM: 0, ottimo: false, mono: ctx.mono,
+      pacchi: 0, cambi: 0, stat: { ms: 0, tuffi: 0, lp: 0, colonne: 0, errore: '' }
+    };
+    if (ctx.m === 0) return esito;
+    if (ctx.S === 0) {
+      for (let i = 0; i < ctx.m; i++) esito.nonPiazzati.push({ lung: ctx.lung[i], qta: ctx.d0[i] });
+      return esito;
+    }
+    for (let i = 0; i < ctx.m; i++) esito.volumeMM += ctx.d0[i] * ctx.w[i];
+
+    const trovate = [];          // tutte le soluzioni trovate strada facendo
+    function registra(sol) { if (sol) trovate.push(misura(ctx, sol, pacco, sfridoMin)); }
+    function costoMinimo() {
+      let c = Infinity;
+      for (const s of trovate) if (s.mancanti === 0 && s.costo < c) c = s.costo;
+      return c;
+    }
+    /* La soluzione completa meno faticosa entro un certo costo */
+    function migliorePer(tetto) {
+      let b = null;
+      for (const s of trovate) {
+        if (s.mancanti !== 0 || s.costo > tetto) continue;
+        if (!b || s.lavoro < b.lavoro || (s.lavoro === b.lavoro && (s.costo < b.costo ||
+            (s.costo === b.costo && s.recupero > b.recupero)))) b = s;
+      }
+      return b;
+    }
+    const storia = [];
+    function annota(fase, budget, sol) {
+      if (dati.debug) storia.push({ fase: fase, budget: budget, costo: sol ? sol.costo : null, schemi: sol ? sol.parti.length : null, pacchi: sol ? sol.pacchi : null, cambi: sol ? sol.cambi : null, ms: Math.round(adesso() - t0) });
+    }
+
+    registra(golosa(ctx));
+    let lbMM = limiteVolume(ctx, ctx.d0, ctx.disp0);
+    esito.minimoVolumeMM = lbMM;
+    let tuffi = 0, livelli = 0;
+    try {
+      // Con più lunghezze di tavola: come base si prova anche ogni lunghezza da sola
+      if (!ctx.mono && !dati.interno) {
+        for (let s = 0; s < ctx.S; s++) {
+          if (ctx.lung[0] > ctx.L[s] - ctx.rifilo) continue;       // il pezzo più lungo non ci sta
+          const sub = risolviGruppo({
+            pezzi: dati.pezzi, tavole: [{ lung: ctx.L[s], qta: isFinite(ctx.disp0[s]) ? ctx.disp0[s] : null }],
+            lama: ctx.lama, rifilo: ctx.rifilo, sfridoMin: sfridoMin, pacco: pacco,
+            tempoMs: Math.max(150, tempo * 0.3 / ctx.S), seme: dati.seme, interno: true
+          });
+          if (sub.nonPiazzati.length) continue;
+          const parti = [];
+          for (const sc of sub.schemi) {
+            const a = new Int16Array(ctx.m);
+            for (const l of sc.tagli) { let i = 0; while (ctx.lung[i] !== l) i++; a[i]++; }
+            parti.push({ s: s, a: a, n: sc.ripeti });
+          }
+          const sol = { parti: parti, costo: sub.costoMM, resto: new Int32Array(ctx.m) };
+          registra(sol); annota('solo ' + ctx.L[s], null, sol);
+          for (const p of parti) aggiungiAlPool(ctx, p.s, p.a);
+        }
+      }
+      const radice = risolviRilassato(ctx, ctx.d0, ctx.disp0, t0 + tempo * 0.5);
+      if (!radice.impossibile) {
+        lbMM = Math.max(lbMM, arrotondaCosto(ctx, radice.lb * ctx.Lmax));
+        const cl = tuffoClassico(ctx, scad);
+        registra(cl); annota('classico', null, cl);
+        const casuale = creaCasuale((Number(dati.seme) || 0) + 20261113);
+        let fetta = Math.max(150, tempo * 0.12);        // tempo massimo per un singolo tuffo
+        const base = Object.assign({ pacco: pacco, maxNodi: 250, alternative: 2, maxValutati: 8, maxSoglie: 8, rumore: 0, gamma: 1, riserva: 0.5 }, dati.opz || {});
+        /* Il primo tuffo di ogni fase è "pulito"; i successivi cambiano un po' i gusti per esplorare */
+        function opzioni(primo) {
+          if (primo) return { opz: base, casuale: null };
+          return { opz: Object.assign({}, base, { rumore: 0.25 + 0.5 * casuale(), riserva: 0.2 + 0.45 * casuale(), gamma: 0.6 + 1.2 * casuale() }), casuale: casuale };
+        }
+
+        function tuffa(budget, primo, fine) {
+          const o = opzioni(primo);
+          o.opz.scaduto = false;
+          const sol = tuffoGuidato(ctx, budget, o.casuale, Math.min(fine, adesso() + fetta), o.opz);
+          if (!sol && o.opz.scaduto) fetta *= 2.5;     // il tempo non è bastato: al prossimo se ne concede di più
+          return sol;
+        }
+
+        // FASE A - meno legno: si cerca una soluzione più economica di quella nota,
+        // dimezzando ogni volta la distanza dal limite inferiore
+        let basso = lbMM - ctx.passo;                // costo sicuramente non raggiungibile
+        const proveMax = ctx.mono ? 8 : 3;
+        while (adesso() - t0 < tempo * 0.4) {
+          const alto = costoMinimo();
+          if (!isFinite(alto) || alto - basso <= ctx.passo) break;
+          let medio = basso + Math.floor((alto - basso) / 2 / ctx.passo) * ctx.passo;
+          if (medio <= basso) medio = basso + ctx.passo;
+          let trovata = null;
+          for (let k = 0; k < proveMax && !trovata && adesso() - t0 < tempo * 0.4; k++) {
+            trovata = tuffa(medio, k === 0, scad);
+            tuffi++;
+            annota('A', medio, trovata ? misura(ctx, trovata, pacco, sfridoMin) : null);
+          }
+          if (trovata) registra(trovata); else basso = medio;
+        }
+
+        // FASE B - meno lavoro a parità di legno: meno schemi, meno pacchi, meno spostamenti di battuta
+        // FASE C - piani alternativi: lo stesso, ammettendo 1, 2... tavole in più
+        const cm = costoMinimo();
+        if (isFinite(cm)) {
+          const tavoleMin = migliorePer(cm).tavole;
+          livelli = dati.interno ? 0 : (dati.extraMax === undefined ? (tavoleMin >= 30 ? 2 : (tavoleMin >= 8 ? 1 : 0)) : Math.max(0, Math.round(dati.extraMax)));
+          for (let liv = 0; liv <= livelli; liv++) {
+            const budget = cm + liv * ctx.Lmax;
+            const fine = liv === 0 ? Math.min(scad, t0 + tempo * 0.75) : scad;
+            const pazienza = dati.pazienza || (liv === 0 ? 12 : 8);
+            let fermi = 0, k = 0;
+            while (adesso() < fine && fermi < pazienza && tuffi < (dati.maxTuffi || 200)) {
+              const prima = migliorePer(budget).lavoro;
+              // a parità di legno si alternano tuffi guidati e tuffi classici con piccole variazioni
+              const sol = (liv === 0 && k % 2 === 1) ? tuffoClassico(ctx, fine, casuale) : tuffa(budget, k === 0, fine);
+              k++; tuffi++;
+              registra(sol); annota(liv === 0 ? 'B' : 'C' + liv, budget, sol);
+              if (migliorePer(budget).lavoro < prima) fermi = 0; else fermi++;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      esito.stat.errore = String(e && e.message ? e.message : e);
+    }
+    if (dati.debug) esito.stat.storia = storia;
+
+    /* Traduce una soluzione in schemi leggibili: tagli dal più lungo al più corto */
+    function componi(sol) {
+      const out = { schemi: [], tavole: sol.tavole, costoMM: sol.costo, pacchi: sol.pacchi, cambi: sol.cambi };
+      for (const p of sol.parti) {
+        const tagli = [];
+        for (let i = 0; i < ctx.m; i++) for (let k = 0; k < p.a[i]; k++) tagli.push(ctx.lung[i]);
+        out.schemi.push({ tavola: ctx.L[p.s], ripeti: p.n, tagli: tagli, sfrido: sfridoDi(ctx, p) });
+      }
+      out.schemi.sort(function (p, q) {
+        if (p.tavola !== q.tavola) return q.tavola - p.tavola;
+        const n = Math.max(p.tagli.length, q.tagli.length);
+        for (let i = 0; i < n; i++) {
+          const u = p.tagli[i] || 0, v = q.tagli[i] || 0;
+          if (u !== v) return v - u;
+        }
+        return q.ripeti - p.ripeti;
+      });
+      return out;
+    }
+
+    // scelta finale
+    const cm = costoMinimo();
+    let scelta = null;
+    if (isFinite(cm)) scelta = migliorePer(cm);
+    else for (const s of trovate) if (!scelta || s.mancanti < scelta.mancanti) scelta = s;
+    const princ = componi(scelta);
+    esito.schemi = princ.schemi; esito.tavole = princ.tavole; esito.costoMM = princ.costoMM;
+    esito.pacchi = princ.pacchi; esito.cambi = princ.cambi;
+    for (let i = 0; i < ctx.m; i++) if (scelta.resto[i] > 0) esito.nonPiazzati.push({ lung: ctx.lung[i], qta: scelta.resto[i] });
+    esito.limiteMM = lbMM;
+    esito.ottimo = scelta.mancanti === 0 && scelta.costo <= lbMM;
+    // alternative: solo se tolgono almeno 2 schemi (o il 15% del lavoro) rispetto al piano precedente
+    if (isFinite(cm)) {
+      let prec = scelta;
+      for (let liv = 1; liv <= livelli; liv++) {
+        const alt = migliorePer(cm + liv * ctx.Lmax);
+        if (alt && alt.costo > prec.costo && (alt.parti.length <= prec.parti.length - 2 || alt.lavoro <= 0.85 * prec.lavoro)) {
+          esito.alternative.push(componi(alt));
+          prec = alt;
+        }
+      }
+    }
+    esito.stat.ms = Math.round(adesso() - t0); esito.stat.tuffi = tuffi;
+    esito.stat.lp = ctx.nLP; esito.stat.colonne = ctx.pool.length;
+    return esito;
+  }
+
+  return { risolviGruppo: risolviGruppo };
+}
+if (typeof module !== 'undefined' && module.exports) { module.exports = { creaMotore: creaMotore }; }
+</script>
+
+<!-- ============================ 4. LOGICA ============================ -->
+<script id="logica">
+/* =====================================================================
+   LOGICA DEL PIANO — lavora solo sui dati, non tocca la pagina.
+   Controlla le righe, divide per sezione e trattamento HT, assegna a
+   ogni pezzo tagliato il suo progetto e prepara i riepiloghi.
+   ===================================================================== */
+function creaLogica() {
+  'use strict';
+
+  /* Numeri scritti all'italiana: "1.200", "1200,5", "1 200 mm" */
+  function numero(v) {
+    if (typeof v === 'number') return v;
+    let s = String(v == null ? '' : v).trim().replace(/\s+/g, '').replace(/mm$/i, '');
+    if (s === '') return NaN;
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '');
+    s = s.replace(',', '.');
+    return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+  }
+  /* "100 x 50", "100X50", "100*50" diventano tutti "100×50" */
+  function normSezione(s) {
+    return String(s == null ? '' : s).trim().replace(/\s*[xX*×]\s*/g, '×').replace(/\s+/g, ' ');
+  }
+  function testo(v) { return String(v == null ? '' : v).trim(); }
+  function veroHT(v) {
+    if (v === true) return true;
+    return ['ht', 'si', 'sì', 's', 'x', '1', 'true', 'vero', 'yes', 'y'].indexOf(testo(v).toLowerCase()) >= 0;
+  }
+  /* Ordine "naturale": 9 viene prima di 10, "6-12" prima di "7-8" */
+  function confronta(a, b) { return String(a).localeCompare(String(b), 'it', { numeric: true, sensitivity: 'base' }); }
+  function lettera(i) {                 // 0 → A, 25 → Z, 26 → AA ...
+    let s = '';
+    i = i + 1;
+    while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); }
+    return s;
+  }
+  function nomeGruppo(g) {
+    return (g.sezione ? 'Sezione ' + g.sezione : 'Sezione non indicata') + (g.ht ? ' — legno HT' : '');
+  }
+
+  /* ------------------------------------------------------------------
+     Lettura di righe incollate o scritte a mano.
+     - celle di Excel (separate da tabulazioni o punto e virgola);
+     - testo libero: "Progetto 101: 14x2400, 3x760"
+     predef = { progetto, sezione, ht } usati quando mancano nel testo.
+     ------------------------------------------------------------------ */
+  function analizzaTesto(grezzo, predef, scambia) {
+    const righe = [];
+    let scartate = 0;
+    const linee = String(grezzo || '').replace(/\r/g, '').split('\n').filter(function (l) { return l.trim() !== ''; });
+    function metti(progetto, sezione, ht, q, l) {
+      if (scambia) { const t = q; q = l; l = t; }
+      const qn = numero(q), ln = numero(l);
+      if (qn > 0 && ln > 0) {
+        righe.push({ progetto: testo(progetto), sezione: normSezione(sezione), ht: !!ht, qta: Math.round(qn), lung: Math.round(ln) });
+        return true;
+      }
+      return false;
+    }
+    const conTab = linee.some(function (l) { return l.indexOf('\t') >= 0; });
+    const conPV = !conTab && linee.length > 0 && linee.every(function (l) { return l.indexOf(';') >= 0; });
+    if (conTab || conPV) {
+      const celle = linee.map(function (l) { return l.split(conTab ? '\t' : ';').map(function (c) { return c.trim(); }); });
+      let nCol = 0;
+      celle.forEach(function (r) { let u = r.length; while (u > 0 && r[u - 1] === '') u--; if (u > nCol) nCol = u; });
+      celle.forEach(function (r) {
+        let ok;
+        if (nCol >= 5) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, veroHT(r[2]), r[3], r[4]);
+        else if (nCol === 4) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, predef.ht, r[2], r[3]);
+        else if (nCol === 3) ok = metti(r[0] || predef.progetto, predef.sezione, predef.ht, r[1], r[2]);
+        else ok = metti(predef.progetto, predef.sezione, predef.ht, r[0], r[1]);
+        if (!ok) scartate++;            // intestazioni o righe incomplete
+      });
+    } else {
+      let progCorrente = predef.progetto, htCorrente = predef.ht;
+      linee.forEach(function (linea) {
+        let resto = linea, progetto = progCorrente, ht = htCorrente;
+        const conDuePunti = /^\s*(?:prog(?:etto)?\.?\s*)?([^:=]{1,40}?)\s*[:=]/i.exec(linea);
+        const soloTitolo = /^\s*prog(?:etto)?\.?\s+(.{1,40})$/i.exec(linea);
+        let nome = null;
+        if (conDuePunti) { nome = conDuePunti[1]; resto = linea.slice(conDuePunti[0].length); }
+        else if (soloTitolo && !/\d\s*[xX×*]\s*\d/.test(linea)) { nome = soloTitolo[1]; resto = ''; }
+        if (nome !== null) {
+          ht = predef.ht;
+          if (/\bHT\b/i.test(nome)) { ht = true; nome = nome.replace(/\bHT\b/ig, ''); }
+          nome = nome.trim();
+          if (nome) progetto = nome;
+          progCorrente = progetto; htCorrente = ht;
+          if (resto.trim() === '') return;
+        }
+        let trovate = 0, m;
+        const re = /(\d+)\s*[xX×*]\s*(\d+(?:[.,]\d+)?)/g;
+        while ((m = re.exec(resto)) !== null) if (metti(progetto, predef.sezione, ht, m[1], m[2])) trovate++;
+        if (!trovate) {
+          const nums = resto.trim().split(/[\s,;]+/);
+          if (!(nums.length === 2 && metti(progetto, predef.sezione, ht, nums[0], nums[1]))) scartate++;
+        }
+      });
+    }
+    return { righe: righe, scartate: scartate };
+  }
+
+  /* Perché una riga non può entrare nel calcolo ('' = riga buona o vuota) */
+  function difettoRiga(r, par) {
+    const vq = testo(r.qta) === '', vl = testo(r.lung) === '';
+    if (vq && vl) return '';
+    const q = numero(r.qta), l = numero(r.lung);
+    if (!(q > 0) || Math.round(q) !== q) return 'quantità non valida';
+    if (!(l > 0)) return 'lunghezza non valida';
+    if (Math.round(l) > par.quotaMax) return 'il pezzo da ' + Math.round(l) + ' mm supera la quota massima della macchina (' + par.quotaMax + ' mm)';
+    return '';
+  }
+
+  /* ------------------------------------------------------------------
+     Divide la lista in gruppi (stessa sezione e stesso trattamento HT:
+     non si possono mescolare sulla stessa tavola) e sceglie per ogni
+     gruppo le tavole adatte. Segnala le righe che non si possono tagliare.
+     ------------------------------------------------------------------ */
+  function preparaGruppi(st) {
+    const par = st.parametri, avvisi = [], mappa = new Map();
+    st.pezzi.forEach(function (r, idx) {
+      if (testo(r.qta) === '' && testo(r.lung) === '') return;
+      const dove = 'Riga ' + (idx + 1) + (testo(r.progetto) ? ' (progetto ' + testo(r.progetto) + ')' : '');
+      const dif = difettoRiga(r, par);
+      if (dif) { avvisi.push({ righe: [idx], testo: dove + ': ' + dif + '. Riga esclusa dal calcolo.' }); return; }
+      const sezione = normSezione(r.sezione), ht = !!r.ht, chiave = sezione + '|' + (ht ? 'HT' : '');
+      let g = mappa.get(chiave);
+      if (!g) { g = { chiave: chiave, sezione: sezione, ht: ht, righe: [], tavole: [] }; mappa.set(chiave, g); }
+      g.righe.push({ idx: idx, progetto: testo(r.progetto), qta: Math.round(numero(r.qta)), lung: Math.round(numero(r.lung)) });
+    });
+    const tavole = [];
+    st.tavole.forEach(function (t) {
+      const l = Math.round(numero(t.lung));
+      if (!(l > 0)) return;
+      const q = testo(t.qta) === '' ? null : Math.max(0, Math.floor(numero(t.qta) || 0));
+      tavole.push({ lung: l, qta: q, sezione: normSezione(t.sezione), tipo: t.tipo || 'tutti' });
+    });
+    const gruppi = [];
+    Array.from(mappa.values()).sort(function (a, b) { return confronta(a.sezione, b.sezione) || (a.ht ? 1 : 0) - (b.ht ? 1 : 0); }).forEach(function (g) {
+      const adatte = tavole.filter(function (t) { return t.tipo === 'tutti' || (t.tipo === 'ht') === g.ht; });
+      // se per questa sezione sono indicate tavole apposta, valgono solo quelle
+      const apposta = adatte.filter(function (t) { return t.sezione !== '' && t.sezione === g.sezione; });
+      const scelte = apposta.length ? apposta : adatte.filter(function (t) { return t.sezione === ''; });
+      g.tavole = scelte.map(function (t) { return { lung: t.lung, qta: t.qta }; });
+      const tutte = g.righe.map(function (r) { return r.idx; });
+      if (!g.tavole.length) {
+        avvisi.push({ righe: tutte, testo: nomeGruppo(g) + ': nessuna tavola indicata nel riquadro 1 per questi pezzi (' + g.righe.length + ' righe escluse dal calcolo).' });
+        return;
+      }
+      const utile = Math.max.apply(null, g.tavole.map(function (t) { return t.lung; })) - par.rifilo;
+      const buone = [];
+      g.righe.forEach(function (r) {
+        if (r.lung > utile) {
+          avvisi.push({ righe: [r.idx], testo: 'Riga ' + (r.idx + 1) + (r.progetto ? ' (progetto ' + r.progetto + ')' : '') + ': il pezzo da ' + r.lung +
+            ' mm è più lungo della tavola disponibile (' + utile + ' mm utili tolta la testatura). Riga esclusa dal calcolo.' });
+        } else buone.push(r);
+      });
+      g.righe = buone;
+      if (g.righe.length) gruppi.push(g);
+    });
+    return { gruppi: gruppi, avvisi: avvisi };
+  }
+
+  /* I dati di un gruppo nella forma che serve al motore */
+  function datiMotore(g, par) {
+    return {
+      pezzi: g.righe.map(function (r) { return { lung: r.lung, qta: r.qta }; }),
+      tavole: g.tavole, lama: par.lama, rifilo: par.rifilo, sfridoMin: par.sfridoMin,
+      pacco: par.pacco, tempoMs: Math.round(par.tempo * 1000)
+    };
+  }
+
+  /* ------------------------------------------------------------------
+     Divide ogni schema in pacchi e scrive su ogni taglio a quale
+     progetto vanno i pezzi. Il motore sa solo "quanti pezzi di ogni
+     lunghezza": qui si decide di chi sono, cercando di non dividere mai
+     uno schema fra più progetti (e, se serve, almeno non un pacco).
+     ------------------------------------------------------------------ */
+  function assegnaProgetti(schemi, righe, pacco) {
+    const dom = new Map();                 // lunghezza → (progetto → pezzi ancora da assegnare)
+    righe.forEach(function (r) {
+      let m = dom.get(r.lung);
+      if (!m) { m = new Map(); dom.set(r.lung, m); }
+      m.set(r.progetto, (m.get(r.progetto) || 0) + r.qta);
+    });
+    const out = schemi.map(function (s) {
+      const pacchi = [];
+      let resto = s.ripeti;
+      while (resto > 0) {
+        const n = Math.min(pacco, resto);
+        pacchi.push({ tavole: n, dest: s.tagli.map(function () { return []; }), fatto: false });
+        resto -= n;
+      }
+      return { tavola: s.tavola, ripeti: s.ripeti, tagli: s.tagli.slice(), sfrido: s.sfrido, pacchi: pacchi };
+    });
+    const giaNelloSchema = out.map(function () { return new Set(); });
+
+    Array.from(dom.keys()).sort(function (a, b) { return b - a; }).forEach(function (lung) {
+      const rest = dom.get(lung);
+      const nomi = Array.from(rest.keys()).sort(confronta);
+      const blocchi = [];                  // un blocco per ogni schema che contiene questa lunghezza
+      out.forEach(function (s, j) {
+        const pos = [];
+        s.tagli.forEach(function (t, k) { if (t === lung) pos.push(k); });
+        if (pos.length) blocchi.push({ j: j, pos: pos, T: pos.length * s.ripeti });
+      });
+      blocchi.sort(function (a, b) { return b.T - a.T; });
+      function preferiti(b) {              // progetti che possono prendersi tutto il blocco, i più adatti per primi
+        return nomi.filter(function (p) { return rest.get(p) >= b.T; }).sort(function (p, q) {
+          const ap = giaNelloSchema[b.j].has(p) ? 0 : 1, aq = giaNelloSchema[b.j].has(q) ? 0 : 1;
+          if (ap !== aq) return ap - aq;                       // stesso progetto degli altri tagli dello schema
+          const ep = rest.get(p) === b.T ? 0 : 1, eq = rest.get(q) === b.T ? 0 : 1;
+          if (ep !== eq) return ep - eq;                       // quantità che torna precisa
+          return rest.get(q) - rest.get(p);                    // chi ne ha di più
+        });
+      }
+      // 1) si cerca una sistemazione in cui ogni schema va a un solo progetto
+      const scelta = new Array(blocchi.length).fill(null);
+      let nodi = 0, riuscita = false;
+      (function cerca(i) {
+        if (riuscita || ++nodi > 20000) return;
+        if (i === blocchi.length) { riuscita = true; return; }
+        const cand = preferiti(blocchi[i]);
+        for (let c = 0; c < cand.length; c++) {
+          const p = cand[c];
+          rest.set(p, rest.get(p) - blocchi[i].T); scelta[i] = p;
+          cerca(i + 1);
+          if (riuscita) return;
+          rest.set(p, rest.get(p) + blocchi[i].T); scelta[i] = null;
+        }
+      })(0);
+      if (!riuscita) for (let i = 0; i < blocchi.length; i++) scelta[i] = null;
+      // 2) scrittura delle destinazioni (dividendo solo dove è inevitabile)
+      let corrente = null;                 // progetto da cui si sta attingendo
+      blocchi.forEach(function (b, i) {
+        const s = out[b.j];
+        let unico = scelta[i];
+        if (unico === null) {
+          const cand = preferiti(b);
+          if (cand.length) { unico = cand[0]; rest.set(unico, rest.get(unico) - b.T); }
+        }
+        s.pacchi.forEach(function (pk) {
+          b.pos.forEach(function (k) {
+            if (unico !== null) { pk.dest[k] = [{ p: unico, n: pk.tavole }]; return; }
+            let serve = pk.tavole;
+            while (serve > 0) {
+              if (corrente === null || !(rest.get(corrente) > 0)) {
+                corrente = null;
+                nomi.forEach(function (p) { if (rest.get(p) > 0 && (corrente === null || rest.get(p) > rest.get(corrente))) corrente = p; });
+                if (corrente === null) break;       // non dovrebbe succedere: più pezzi tagliati che richiesti
+              }
+              const n = Math.min(serve, rest.get(corrente));
+              pk.dest[k].push({ p: corrente, n: n });
+              rest.set(corrente, rest.get(corrente) - n);
+              serve -= n;
+            }
+          });
+        });
+        s.pacchi.forEach(function (pk) { b.pos.forEach(function (k) { pk.dest[k].forEach(function (d) { giaNelloSchema[b.j].add(d.p); }); }); });
+      });
+    });
+    const mancanti = [];                   // pezzi richiesti che il piano non riesce a dare (tavole insufficienti)
+    dom.forEach(function (m, lung) { m.forEach(function (q, p) { if (q > 0) mancanti.push({ progetto: p, lung: lung, qta: q }); }); });
+    mancanti.sort(function (a, b) { return confronta(a.progetto, b.progetto) || b.lung - a.lung; });
+    return { schemi: out, mancanti: mancanti };
+  }
+
+  /* Mette insieme il risultato del motore e le etichette dei progetti */
+  function componiGruppo(g, esito, par) {
+    const elenco = [{ schemi: esito.schemi }].concat(esito.alternative || []);
+    const varianti = elenco.map(function (v) { return assegnaProgetti(v.schemi, g.righe, par.pacco); });
+    const richiesta = new Map();
+    g.righe.forEach(function (r) {
+      const k = r.progetto + '\u0001' + r.lung;
+      const e = richiesta.get(k);
+      if (e) e.qta += r.qta; else richiesta.set(k, { progetto: r.progetto, lung: r.lung, qta: r.qta });
+    });
+    return {
+      chiave: g.chiave, sezione: g.sezione, ht: g.ht, tavole: g.tavole,
+      varianti: varianti.map(function (v) { return { schemi: v.schemi }; }), scelta: 0,
+      mancanti: varianti[0].mancanti,
+      richiesta: Array.from(richiesta.values()).sort(function (a, b) { return confronta(a.progetto, b.progetto) || b.lung - a.lung; }),
+      mono: !!esito.mono, minimoMM: esito.minimoVolumeMM, limiteMM: esito.limiteMM, ottimo: !!esito.ottimo,
+      ms: esito.stat ? esito.stat.ms : 0, errore: esito.stat ? esito.stat.errore : ''
+    };
+  }
+
+  /* Numeri di riepilogo di un insieme di schemi */
+  function statVariante(schemi, par) {
+    const st = { tavole: 0, legno: 0, pezzi: 0, nPezzi: 0, lama: 0, testa: 0, corto: 0, recupero: 0, scarto: 0, schemi: schemi.length, pacchi: 0, recuperi: [], perLung: [] };
+    const rec = new Map(), per = new Map();
+    schemi.forEach(function (s) {
+      const somma = s.tagli.reduce(function (a, b) { return a + b; }, 0);
+      st.tavole += s.ripeti; st.legno += s.ripeti * s.tavola; st.pezzi += s.ripeti * somma; st.nPezzi += s.ripeti * s.tagli.length;
+      st.testa += s.ripeti * par.rifilo;
+      st.lama += s.ripeti * (s.tavola - par.rifilo - somma - s.sfrido);
+      if (s.sfrido > 0 && s.sfrido >= par.sfridoMin) { st.recupero += s.ripeti * s.sfrido; rec.set(s.sfrido, (rec.get(s.sfrido) || 0) + s.ripeti); }
+      else st.corto += s.ripeti * s.sfrido;
+      st.pacchi += s.pacchi.length;
+      per.set(s.tavola, (per.get(s.tavola) || 0) + s.ripeti);
+    });
+    st.scarto = st.lama + st.testa + st.corto;
+    rec.forEach(function (n, l) { st.recuperi.push({ lung: l, n: n }); });
+    st.recuperi.sort(function (a, b) { return b.lung - a.lung; });
+    per.forEach(function (n, l) { st.perLung.push({ lung: l, n: n }); });
+    st.perLung.sort(function (a, b) { return b.lung - a.lung; });
+    return st;
+  }
+
+  /* Toglie dalla lista i pezzi dei pacchi già spuntati (per ripartire il giorno dopo) */
+  function togliTagliati(st) {
+    let tolti = 0;
+    if (!st.piano) return 0;
+    st.piano.gruppi.forEach(function (g) {
+      g.varianti[g.scelta].schemi.forEach(function (s) {
+        s.pacchi.forEach(function (pk) {
+          if (!pk.fatto) return;
+          s.tagli.forEach(function (lung, k) {
+            pk.dest[k].forEach(function (d) {
+              let da = d.n;
+              for (let i = 0; i < st.pezzi.length && da > 0; i++) {
+                const r = st.pezzi[i];
+                if (normSezione(r.sezione) !== g.sezione || !!r.ht !== g.ht || testo(r.progetto) !== d.p) continue;
+                if (Math.round(numero(r.lung)) !== lung) continue;
+                const q = Math.round(numero(r.qta));
+                if (!(q > 0)) continue;
+                const t = Math.min(q, da);
+                r.qta = q - t; da -= t; tolti += t;
+              }
+            });
+          });
+        });
+      });
+    });
+    st.pezzi = st.pezzi.filter(function (r) { return !(testo(r.qta) !== '' && numero(r.qta) === 0); });
+    st.piano = null;
+    return tolti;
+  }
+
+  /* Dati di esempio (inventati) per provare il programma */
+  function esempio() {
+    const prog = {
+      '101': [[14, 2400], [3, 760], [10, 1200], [8, 800], [2, 1900]],
+      '102': [[16, 1000], [3, 640], [10, 1450], [8, 560], [2, 1250]],
+      '103': [[12, 2100], [3, 900], [10, 1140], [10, 700], [2, 2000]],
+      '104': [[14, 2650], [3, 820], [10, 2100], [10, 780], [2, 2150]]
+    };
+    const out = [];
+    Object.keys(prog).forEach(function (p) { prog[p].forEach(function (c) { out.push({ progetto: p, sezione: '100×50', ht: false, qta: c[0], lung: c[1] }); }); });
+    return out;
+  }
+
+  return {
+    numero: numero, normSezione: normSezione, testo: testo, confronta: confronta, lettera: lettera, nomeGruppo: nomeGruppo,
+    analizzaTesto: analizzaTesto, difettoRiga: difettoRiga, preparaGruppi: preparaGruppi, datiMotore: datiMotore,
+    assegnaProgetti: assegnaProgetti, componiGruppo: componiGruppo, statVariante: statVariante,
+    togliTagliati: togliTagliati, esempio: esempio
+  };
+}
+if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLogica: creaLogica }; }
+</script>
+
+<!-- ============================ 5. COMANDI ============================ -->
+<script>
+(function () {
+  'use strict';
+  const L = creaLogica();
+  const CHIAVE = 'pianoTagli.v1';            // dove il browser ricorda l'ultima lista
+  const COLORI = ['#ffd9a8', '#bfe3ff', '#c9f0c3', '#f7c6d9', '#e3d4ff', '#fff3a6', '#bdeee6', '#f5c9b8', '#d7e0ea', '#e6efb4'];
+
+  function statoNuovo() {
+    return {
+      app: 'PianoTagli', versione: 1,
+      parametri: { lama: 4, rifilo: 10, sfridoMin: 300, quotaMax: 5000, pacco: 12, tempo: 3 },
+      tavole: [{ lung: 4060, qta: '', sezione: '', tipo: 'tutti' }],
+      pezzi: [],
+      rapido: { progetto: '', sezione: '', ht: false },
+      piano: null, pianoVecchio: false, stampaCompatta: false
+    };
+  }
+  let stato = statoNuovo();
+
+  /* ---------- piccoli aiuti ---------- */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function nf(x, dec) { return Number(x).toLocaleString('it-IT', { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 }); }
+  function metri(mm) { return nf(mm / 1000, 1) + ' m'; }
+  function plurale(n, uno, tanti) { return n + ' ' + (n === 1 ? uno : tanti); }
+  let timerMsg = null;
+  function avvisa(testo, errore, resta) {
+    const m = $('messaggio');
+    m.textContent = testo || '';
+    m.className = errore ? 'errore' : '';
+    clearTimeout(timerMsg);
+    if (testo && !resta) timerMsg = setTimeout(function () { m.textContent = ''; }, 7000);
+  }
+
+  /* ---------- memoria: il browser ricorda la lista fra una apertura e l'altra ---------- */
+  let timerSalva = null;
+  const PROVA = location.hash === '#prova';   // "PianoTagli.html#prova": carica l'esempio e calcola, senza toccare la lista salvata
+  function ricorda() {
+    if (PROVA) return;
+    clearTimeout(timerSalva);
+    timerSalva = setTimeout(function () {
+      try { localStorage.setItem(CHIAVE, JSON.stringify(stato)); } catch (e) { /* memoria non disponibile: si lavora lo stesso */ }
+    }, 300);
+  }
+  /* Accetta una lista letta da file o dalla memoria, controllando che sia fatta bene */
+  function adotta(o) {
+    if (!o || typeof o !== 'object' || !Array.isArray(o.pezzi)) throw new Error('formato non riconosciuto');
+    const n = statoNuovo();
+    if (o.parametri) Object.keys(n.parametri).forEach(function (k) { const v = Number(o.parametri[k]); if (isFinite(v) && v >= 0) n.parametri[k] = v; });
+    if (Array.isArray(o.tavole) && o.tavole.length) {
+      n.tavole = o.tavole.map(function (t) {
+        return { lung: t.lung == null ? '' : t.lung, qta: t.qta == null ? '' : t.qta, sezione: String(t.sezione || ''), tipo: ['tutti', 'ht', 'noht'].indexOf(t.tipo) >= 0 ? t.tipo : 'tutti' };
+      });
+    }
+    n.pezzi = o.pezzi.map(function (r) {
+      return { progetto: String(r.progetto == null ? '' : r.progetto), sezione: String(r.sezione == null ? '' : r.sezione), ht: !!r.ht, qta: r.qta == null ? '' : r.qta, lung: r.lung == null ? '' : r.lung };
+    });
+    if (o.rapido) n.rapido = { progetto: String(o.rapido.progetto || ''), sezione: String(o.rapido.sezione || ''), ht: !!o.rapido.ht };
+    if (o.piano && Array.isArray(o.piano.gruppi) && o.piano.parametri) { n.piano = o.piano; n.pianoVecchio = !!o.pianoVecchio; }
+    n.stampaCompatta = !!o.stampaCompatta;
+    stato = n;
+  }
+  /* Qualcosa è cambiato: si ricorda e, se c'era un piano, lo si segna come da rifare */
+  let revisione = 0;                        // cresce a ogni modifica che cambia il piano
+  function modificato(toccaIlPiano) {
+    if (toccaIlPiano !== false) revisione++;
+    if (toccaIlPiano !== false && stato.piano && !stato.pianoVecchio) { stato.pianoVecchio = true; disegnaPiano(); }
+    ricorda();
+  }
+
+  /* ====================== riquadro 1: tavole e macchina ====================== */
+  const CAMPI = { 'par-rifilo': 'rifilo', 'par-lama': 'lama', 'par-pacco': 'pacco', 'par-sfrido': 'sfridoMin', 'par-quota': 'quotaMax' };
+  function disegnaParametri() {
+    Object.keys(CAMPI).forEach(function (id) { $(id).value = stato.parametri[CAMPI[id]]; });
+    $('par-tempo').value = String(stato.parametri.tempo);
+    if ($('par-tempo').value === '') $('par-tempo').value = '3';
+  }
+  function leggiParametro(id) {
+    const k = CAMPI[id];
+    let v = L.numero($(id).value);
+    if (!isFinite(v) || v < 0) return;                 // valore non valido: resta quello di prima
+    v = Math.round(v);
+    if (k === 'pacco' && v < 1) v = 1;
+    if (k === 'quotaMax' && v < 1) return;
+    stato.parametri[k] = v;
+    modificato();
+    if (k === 'quotaMax') disegnaPezzi();
+  }
+  function disegnaTavole() {
+    $('corpo-tavole').innerHTML = stato.tavole.map(function (t, i) {
+      function op(v, nome) { return '<option value="' + v + '"' + (t.tipo === v ? ' selected' : '') + '>' + nome + '</option>'; }
+      return '<tr data-i="' + i + '">' +
+        '<td data-et="Lunghezza mm"><input type="text" class="num" data-c="lung" inputmode="numeric" value="' + esc(t.lung) + '" aria-label="Lunghezza della tavola in millimetri"></td>' +
+        '<td data-et="Quante ne ho"><input type="text" class="num" data-c="qta" inputmode="numeric" placeholder="quante servono" value="' + esc(t.qta) + '" aria-label="Quante tavole ho"></td>' +
+        '<td data-et="Sezione"><input type="text" data-c="sezione" list="dl-sezioni" placeholder="tutte" value="' + esc(t.sezione) + '" aria-label="Sezione"></td>' +
+        '<td data-et="Legno"><select data-c="tipo" aria-label="Tipo di legno">' + op('tutti', 'qualsiasi') + op('noht', 'non HT') + op('ht', 'solo HT') + '</select></td>' +
+        '<td class="via"><button class="btn-x" type="button" data-via="tavola" title="Togli questa lunghezza" aria-label="Togli questa lunghezza">✕</button></td></tr>';
+    }).join('');
+  }
+
+  /* ====================== riquadro 2: pezzi da tagliare ====================== */
+  function rigaHtml(r, i) {
+    const dif = L.difettoRiga(r, stato.parametri);
+    return '<tr data-i="' + i + '"' + (dif ? ' class="errata" title="' + esc(dif) + '"' : '') + '>' +
+      '<td class="n">' + (i + 1) + '</td>' +
+      '<td data-et="Progetto"><input type="text" data-c="progetto" list="dl-progetti" value="' + esc(r.progetto) + '" aria-label="Progetto"></td>' +
+      '<td data-et="Sezione"><input type="text" data-c="sezione" list="dl-sezioni" value="' + esc(r.sezione) + '" aria-label="Sezione"></td>' +
+      '<td class="c" data-et="HT"><input type="checkbox" data-c="ht"' + (r.ht ? ' checked' : '') + ' aria-label="Legno HT"></td>' +
+      '<td data-et="Pezzi"><input type="text" class="num" data-c="qta" inputmode="numeric" value="' + esc(r.qta) + '" aria-label="Quantità"></td>' +
+      '<td data-et="Lunghezza mm"><input type="text" class="num" data-c="lung" inputmode="numeric" value="' + esc(r.lung) + '" aria-label="Lunghezza in millimetri"></td>' +
+      '<td class="via"><button class="btn-x" type="button" data-via="pezzo" title="Togli questa riga" aria-label="Togli questa riga">✕</button></td></tr>';
+  }
+  function disegnaPezzi() {
+    $('corpo-pezzi').innerHTML = stato.pezzi.map(rigaHtml).join('');
+    $('lista-vuota').hidden = stato.pezzi.length > 0;
+    $('tab-pezzi').hidden = stato.pezzi.length === 0;
+    aggiornaTotali();
+    aggiornaSuggerimenti();
+  }
+  function aggiornaTotali() {
+    let righe = 0, pezzi = 0, mm = 0;
+    stato.pezzi.forEach(function (r) {
+      const q = L.numero(r.qta), l = L.numero(r.lung);
+      if (q > 0 && l > 0) { righe++; pezzi += Math.round(q); mm += Math.round(q) * l; }
+    });
+    $('totali').textContent = righe ? plurale(righe, 'riga', 'righe') + ' · ' + plurale(pezzi, 'pezzo', 'pezzi') + ' · ' + metri(mm) + ' di legno' : '';
+  }
+  function aggiornaSuggerimenti() {          // elenchi a discesa con sezioni e progetti già usati
+    const sez = new Set(), prog = new Set();
+    stato.pezzi.forEach(function (r) { const s = L.normSezione(r.sezione); if (s) sez.add(s); const p = L.testo(r.progetto); if (p) prog.add(p); });
+    stato.tavole.forEach(function (t) { const s = L.normSezione(t.sezione); if (s) sez.add(s); });
+    $('dl-sezioni').innerHTML = Array.from(sez).sort(L.confronta).map(function (s) { return '<option value="' + esc(s) + '">'; }).join('');
+    $('dl-progetti').innerHTML = Array.from(prog).sort(L.confronta).map(function (s) { return '<option value="' + esc(s) + '">'; }).join('');
+  }
+  function togliRigheVuote() {
+    stato.pezzi = stato.pezzi.filter(function (r) { return !(L.testo(r.qta) === '' && L.testo(r.lung) === ''); });
+  }
+  function aggiungiRapido() {
+    const pred = { progetto: $('rap-progetto').value.trim(), sezione: L.normSezione($('rap-sezione').value), ht: $('rap-ht').checked };
+    const ris = L.analizzaTesto($('rap-pezzi').value, pred, false);
+    if (!ris.righe.length) {
+      avvisa('Scrivi i pezzi come quantità x lunghezza, per esempio: 14x2400, 3x760', true);
+      $('rap-pezzi').focus();
+      return;
+    }
+    togliRigheVuote();
+    stato.pezzi = stato.pezzi.concat(ris.righe);
+    stato.rapido = pred;
+    $('rap-pezzi').value = '';
+    disegnaPezzi(); modificato();
+    avvisa('Aggiunte ' + plurale(ris.righe.length, 'riga', 'righe') + (pred.progetto ? ' al progetto ' + pred.progetto : '') + '.');
+    $('rap-progetto').focus(); $('rap-progetto').select();
+  }
+
+  /* ---------- finestra "incolla da Excel" ---------- */
+  function leggiIncolla() {
+    return L.analizzaTesto($('inc-testo').value,
+      { progetto: $('inc-progetto').value.trim(), sezione: L.normSezione($('inc-sezione').value), ht: $('inc-ht').checked }, $('inc-scambia').checked);
+  }
+  function anteprimaIncolla() {
+    const ris = leggiIncolla();
+    let t = '';
+    if ($('inc-testo').value.trim() !== '') {
+      t = ris.righe.length ? 'Riconosciute ' + plurale(ris.righe.length, 'riga', 'righe') : 'Nessuna riga riconosciuta';
+      if (ris.righe.length) {
+        let pz = 0;
+        ris.righe.forEach(function (r) { pz += r.qta; });
+        const p = ris.righe[0];
+        t += ' (' + plurale(pz, 'pezzo', 'pezzi') + '). Prima riga: ' + (p.progetto ? 'progetto ' + p.progetto + ', ' : '') + p.qta + ' pezzi da ' + p.lung + ' mm';
+      }
+      if (ris.scartate) t += ' · ' + plurale(ris.scartate, 'riga saltata', 'righe saltate') + ' (intestazioni o incomplete)';
+    }
+    $('inc-esito').textContent = t;
+    return ris;
+  }
+  function apriIncolla() {
+    $('inc-progetto').value = stato.rapido.progetto; $('inc-sezione').value = stato.rapido.sezione; $('inc-ht').checked = stato.rapido.ht;
+    $('inc-testo').value = ''; $('inc-scambia').checked = false; $('inc-esito').textContent = '';
+    $('finestra-incolla').hidden = false;
+    $('inc-testo').focus();
+  }
+  function chiudiIncolla() { $('finestra-incolla').hidden = true; $('btn-incolla').focus(); }
+  function confermaIncolla() {
+    const ris = anteprimaIncolla();
+    if (!ris.righe.length) { $('inc-esito').textContent = 'Nessuna riga riconosciuta: controlla di aver copiato le colonne di quantità e lunghezza.'; return; }
+    togliRigheVuote();
+    stato.pezzi = stato.pezzi.concat(ris.righe);
+    disegnaPezzi(); modificato(); chiudiIncolla();
+    avvisa('Aggiunte ' + plurale(ris.righe.length, 'riga', 'righe') + ' da Excel.');
+  }
+
+  /* ====================== il calcolo ====================== */
+  /* Il motore gira in un "operaio" separato, così la pagina non si blocca;
+     se il browser non lo permette, gira nella pagina stessa. */
+  let operaio = null, operaioNo = false, numRichiesta = 0;
+  const attese = new Map();
+  function calcolaQui(dati) {
+    return new Promise(function (ok, no) {
+      setTimeout(function () { try { ok(creaMotore().risolviGruppo(dati)); } catch (e) { no(e); } }, 30);
+    });
+  }
+  function risolvi(dati) {
+    if (!operaio && !operaioNo) {
+      try {
+        const sorgente = $('motore').textContent +
+          '\nvar __motore = creaMotore();\nonmessage = function (e) { var r; try { r = { id: e.data.id, ok: true, esito: __motore.risolviGruppo(e.data.dati) }; }' +
+          ' catch (err) { r = { id: e.data.id, ok: false, errore: String(err && err.message ? err.message : err) }; } postMessage(r); };';
+        operaio = new Worker(URL.createObjectURL(new Blob([sorgente], { type: 'text/javascript' })));
+        operaio.onmessage = function (e) {
+          const a = attese.get(e.data.id);
+          if (!a) return;
+          attese.delete(e.data.id);
+          if (e.data.ok) a.ok(e.data.esito); else a.no(new Error(e.data.errore));
+        };
+        operaio.onerror = function () {          // operaio non disponibile: si ricalcola nella pagina
+          operaioNo = true; operaio = null;
+          attese.forEach(function (a) { calcolaQui(a.dati).then(a.ok, a.no); });
+          attese.clear();
+        };
+      } catch (e) { operaioNo = true; operaio = null; }
+    }
+    if (!operaio) return calcolaQui(dati);
+    return new Promise(function (ok, no) {
+      const id = ++numRichiesta;
+      attese.set(id, { ok: ok, no: no, dati: dati });
+      operaio.postMessage({ id: id, dati: dati });
+    });
+  }
+  let inCalcolo = false;
+  function calcola() {
+    if (inCalcolo) return;
+    const prep = L.preparaGruppi(stato);
+    if (!prep.gruppi.length) {
+      avvisa(prep.avvisi.length ? prep.avvisi[0].testo : 'Non ci sono pezzi da tagliare: aggiungi almeno una riga con quantità e lunghezza.', true);
+      return;
+    }
+    const par = Object.assign({}, stato.parametri);
+    const revAllInizio = revisione;
+    inCalcolo = true;
+    $('btn-calcola').disabled = true;
+    const gruppi = [];
+    let i = 0;
+    function prossimo() {
+      if (i >= prep.gruppi.length) return Promise.resolve();
+      const g = prep.gruppi[i];
+      avvisa('Calcolo in corso… ' + L.nomeGruppo(g) + (prep.gruppi.length > 1 ? ' (' + (i + 1) + ' di ' + prep.gruppi.length + ')' : ''), false, true);
+      return risolvi(L.datiMotore(g, par)).then(function (esito) { gruppi.push(L.componiGruppo(g, esito, par)); i++; return prossimo(); });
+    }
+    prossimo().then(function () {
+      stato.piano = { calcolatoIl: new Date().toISOString(), parametri: par, gruppi: gruppi, avvisi: prep.avvisi };
+      stato.pianoVecchio = revisione !== revAllInizio;      // la lista è cambiata durante il calcolo?
+      ricorda(); disegnaPiano();
+      let tav = 0;
+      gruppi.forEach(function (g) { g.varianti[0].schemi.forEach(function (s) { tav += s.ripeti; }); });
+      avvisa('Piano pronto: ' + plurale(tav, 'tavola', 'tavole') + '.');
+      document.documentElement.setAttribute('data-calcolo', operaio ? 'operaio' : 'pagina');
+      $('sez-piano').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function (e) {
+      avvisa('Il calcolo non è riuscito: ' + (e && e.message ? e.message : e), true, true);
+    }).then(function () { inCalcolo = false; $('btn-calcola').disabled = false; });
+  }
+
+  /* ====================== riquadro 3: il piano ====================== */
+  function etichetta(progetti) {
+    const nomi = progetti.filter(function (p) { return p !== ''; });
+    return nomi.length ? 'pr. ' + nomi.join('+') : '';
+  }
+  function unisciUguali(voci) {              // "936 → pr. 10", "936 → pr. 10"  diventa  "2 × 936 → pr. 10"
+    const out = [];
+    voci.forEach(function (v) {
+      const u = out[out.length - 1];
+      if (u && u.t === v) u.n++; else out.push({ t: v, n: 1 });
+    });
+    return out.map(function (u) { return (u.n > 1 ? u.n + ' × ' : '') + u.t; });
+  }
+  function schemaHtml(s, nome, gi, si, par, colore) {
+    const np = s.pacchi.length;
+    const primo = s.pacchi[0];
+    const uniforme = s.pacchi.every(function (pk) {
+      return pk.dest.every(function (d, k) { return d.length === 1 && primo.dest[k].length === 1 && d[0].p === primo.dest[k][0].p; });
+    });
+    const fatto = s.pacchi.every(function (pk) { return pk.fatto; });
+    const prog = s.tagli.map(function (t, k) {          // progetti di ogni taglio, su tutti i pacchi
+      const nomi = [];
+      s.pacchi.forEach(function (pk) { pk.dest[k].forEach(function (d) { if (nomi.indexOf(d.p) < 0) nomi.push(d.p); }); });
+      return nomi.sort(L.confronta);
+    });
+    // disegno della tavola
+    let barra = '<div class="barra" aria-hidden="true">';
+    if (par.rifilo > 0) barra += '<div class="seg testa" title="testatura ' + par.rifilo + ' mm"></div>';
+    s.tagli.forEach(function (t, k) {
+      barra += '<div class="seg" style="flex:0 0 ' + (100 * t / s.tavola).toFixed(3) + '%;background:' + colore(prog[k][0]) + '"><b>' + t + '</b><small>' + esc(etichetta(prog[k])) + '</small></div>';
+    });
+    barra += '<div class="seg sfrido">' + (s.sfrido >= 0.05 * s.tavola ? s.sfrido : '') + '</div></div>';
+    // riga dei tagli, nell'ordine in cui si fanno
+    const voci = [];
+    let k = 0;
+    while (k < s.tagli.length) {
+      let j = k;
+      while (j + 1 < s.tagli.length && s.tagli[j + 1] === s.tagli[k] && prog[j + 1].join('|') === prog[k].join('|')) j++;
+      const e = etichetta(prog[k]);
+      voci.push('<span class="taglio">' + (j > k ? (j - k + 1) + ' × ' : '') + s.tagli[k] + (e ? '<small>' + esc(e) + '</small>' : '') + '</span>');
+      k = j + 1;
+    }
+    let sfrido;
+    if (s.sfrido === 0) sfrido = '<span class="sfrido-testo">nessuno sfrido</span>';
+    else if (s.sfrido >= par.sfridoMin) sfrido = '<span class="sfrido-testo recupero">avanzo ' + s.sfrido + ' mm da recuperare</span>';
+    else sfrido = '<span class="sfrido-testo">sfrido ' + s.sfrido + ' mm</span>';
+    // caselle da spuntare: una per pacco
+    let pacchi = '<div class="pacchi">';
+    function casella(pi) { return '<input type="checkbox" data-g="' + gi + '" data-s="' + si + '" data-p="' + pi + '"' + (s.pacchi[pi].fatto ? ' checked' : '') + '>'; }
+    if (uniforme) {
+      pacchi += '<span class="etich">' + (par.pacco > 1 ? 'Fatto:' : 'Tavole fatte:') + '</span>';
+      s.pacchi.forEach(function (pk, pi) {
+        pacchi += '<label class="pacco">' + casella(pi) + ' ' +
+          (par.pacco > 1 ? (np > 1 ? (pi + 1) + '° pacco · ' : '') + plurale(pk.tavole, 'tavola', 'tavole') : (pi + 1)) + '</label>';
+      });
+    } else {
+      s.pacchi.forEach(function (pk, pi) {
+        const dove = unisciUguali(s.tagli.map(function (t, kk) {
+          return t + ' → ' + pk.dest[kk].map(function (d) { return (d.p === '' ? 'senza progetto' : 'pr. ' + esc(d.p)) + (pk.dest[kk].length > 1 ? ' (' + d.n + ' pz)' : ''); }).join(' + ');
+        }));
+        pacchi += '<label class="pacco largo">' + casella(pi) + '<span><b>' + (pi + 1) + '° pacco · ' + plurale(pk.tavole, 'tavola', 'tavole') + '</b> — ' + dove.join(' · ') + '</span></label>';
+      });
+    }
+    pacchi += '</div>';
+    // le caselle stanno in alto a destra; se servono le destinazioni pacco per pacco, sotto il disegno
+    const inTesta = uniforme && np <= 3;
+    return '<div class="schema' + (fatto ? ' fatto' : '') + '">' +
+      '<div class="schema-testa"><span class="schema-lettera">' + nome + '</span>' +
+      '<span class="schema-ripeti">ripeti <b>' + s.ripeti + '</b> ' + (s.ripeti === 1 ? 'volta' : 'volte') + '</span>' +
+      '<span class="schema-info">tavola da ' + s.tavola + ' mm' + (par.pacco > 1 ? ' · ' + plurale(np, 'pacco', 'pacchi') : '') + '</span>' +
+      (inTesta ? pacchi.replace('class="pacchi"', 'class="pacchi in-testa"') : '') + '</div>' +
+      '<div class="schema-tagli">' + voci.join('<span class="piu-segno">+</span>') + sfrido + '</div>' + barra + (inTesta ? '' : pacchi) + '</div>';
+  }
+  function testoMinimo(g, st, par) {
+    const base = L.statVariante(g.varianti[0].schemi, par);
+    if (g.mancanti.length) return { ok: false, t: '' };
+    if (g.mono) {
+      const lung = base.perLung[0].lung, usate = base.tavole, teorico = Math.round(g.minimoMM / lung), limite = Math.round(g.limiteMM / lung);
+      let t;
+      if (usate <= teorico) t = '✔ È il minimo teorico: ' + plurale(teorico, 'tavola', 'tavole') + ' (somma dei pezzi più i tagli, divisa per la tavola).';
+      else if (usate <= limite) t = '✔ Minimo dimostrato: sotto ' + plurale(limite, 'tavola', 'tavole') + ' non si può scendere. Il minimo teorico «a metri» sarebbe ' + teorico + ', ma queste misure non si combinano meglio.';
+      else t = 'Minimo teorico ' + plurale(teorico, 'tavola', 'tavole') + '; il piano con meno legno ne usa ' + usate + '.';
+      if (st.tavole > usate) t += ' Questo piano ne usa ' + (st.tavole - usate) + ' in più per avere meno schemi.';
+      return { ok: usate <= limite, t: t };
+    }
+    let t = 'Legno minimo teorico ' + metri(g.minimoMM) + ', limite calcolato ' + metri(g.limiteMM) + ': il piano con meno legno ne usa ' + metri(base.legno) + '.';
+    if (st.legno > base.legno) t += ' Questo piano ne usa ' + metri(st.legno - base.legno) + ' in più per avere meno schemi.';
+    return { ok: base.legno <= g.limiteMM, t: t };
+  }
+  function disegnaPiano() {
+    const box = $('piano'), p = stato.piano;
+    $('btn-stampa').disabled = !p;
+    box.classList.toggle('compatta', !!stato.stampaCompatta);
+    if (!p) { box.innerHTML = '<p class="vuoto solo-schermo">Il piano comparirà qui dopo il calcolo.</p>'; return; }
+    try { box.innerHTML = pianoHtml(p); }
+    catch (e) { stato.piano = null; box.innerHTML = '<p class="vuoto">Il piano salvato non è leggibile: premi CALCOLA per rifarlo.</p>'; }
+  }
+  function pianoHtml(p) {
+    const par = p.parametri;
+    // un colore per ogni progetto (aiuta a schermo; in stampa contano le scritte)
+    const nomi = [];
+    p.gruppi.forEach(function (g) { g.richiesta.forEach(function (r) { if (nomi.indexOf(r.progetto) < 0) nomi.push(r.progetto); }); });
+    nomi.sort(L.confronta);
+    function colore(pr) { const i = nomi.indexOf(pr); return COLORI[(i < 0 ? 0 : i) % COLORI.length]; }
+
+    const quando = new Date(p.calcolatoIl);
+    let h = '<div class="testa-stampa solo-stampa"><h1>Piano di taglio — ' + quando.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</h1>' +
+      '<p>Testatura ' + par.rifilo + ' mm · lama ' + par.lama + ' mm' + (par.pacco > 1 ? ' · pacchi da ' + par.pacco + ' tavole' : '') + ' · tagli dal pezzo più lungo al più corto</p></div>';
+    if (stato.pianoVecchio) h += '<div class="nota-gialla solo-schermo">⚠ La lista o le impostazioni sono cambiate dopo questo calcolo: premi di nuovo <b>CALCOLA</b> per aggiornare il piano.</div>';
+    if (p.avvisi && p.avvisi.length) h += '<div class="avvisi"><b>Attenzione: alcune righe non sono nel piano</b><ul>' + p.avvisi.map(function (a) { return '<li>' + esc(a.testo) + '</li>'; }).join('') + '</ul></div>';
+
+    // riepilogo generale
+    const tot = { tavole: 0, legno: 0, scarto: 0, recupero: 0, nRec: 0, schemi: 0, pacchi: 0, pezzi: 0, nPezzi: 0 };
+    const stat = p.gruppi.map(function (g) { return L.statVariante(g.varianti[g.scelta].schemi, par); });
+    stat.forEach(function (s) {
+      tot.tavole += s.tavole; tot.legno += s.legno; tot.scarto += s.scarto; tot.recupero += s.recupero; tot.schemi += s.schemi; tot.pacchi += s.pacchi;
+      tot.pezzi += s.pezzi; tot.nPezzi += s.nPezzi;
+      s.recuperi.forEach(function (r) { tot.nRec += r.n; });
+    });
+    h += '<div class="riquadri">' +
+      '<div class="riquadro"><b>' + tot.tavole + '</b><span>tavole da tagliare</span></div>' +
+      '<div class="riquadro"><b>' + metri(tot.legno) + '</b><span>di tavole (' + metri(tot.pezzi) + ' diventano ' + plurale(tot.nPezzi, 'pezzo', 'pezzi') + ')</span></div>' +
+      '<div class="riquadro"><b>' + nf(tot.legno ? 100 * tot.scarto / tot.legno : 0, 1) + ' %</b><span>di spreco (' + metri(tot.scarto) + ': testature, lama, sfridi corti)</span></div>' +
+      '<div class="riquadro"><b>' + (tot.nRec ? tot.nRec + ' · ' + metri(tot.recupero) : 'nessuno') + '</b><span>sfridi recuperabili (da ' + par.sfridoMin + ' mm in su)</span></div>' +
+      '<div class="riquadro"><b>' + tot.schemi + (par.pacco > 1 ? ' · ' + tot.pacchi : '') + '</b><span>' + (par.pacco > 1 ? 'schemi · pacchi da caricare' : 'schemi di taglio') + '</span></div></div>';
+
+    let n = 0;
+    const lettere = [];                      // per la tabella di controllo
+    p.gruppi.forEach(function (g, gi) {
+      const v = g.varianti[g.scelta], st = stat[gi];
+      h += '<div class="gruppo"><h3>' + esc(L.nomeGruppo(g)) + '</h3>';
+      if (g.varianti.length > 1) {
+        const base = L.statVariante(g.varianti[0].schemi, par);
+        h += '<div class="varianti solo-schermo"><b>Due piani possibili: scegli quale usare</b>';
+        g.varianti.forEach(function (vv, vi) {
+          const s = L.statVariante(vv.schemi, par);
+          let riga = '<b>' + (vi === 0 ? 'Meno legno' : 'Più semplice') + '</b>: ' + plurale(s.tavole, 'tavola', 'tavole') + ' · ' + plurale(s.schemi, 'schema', 'schemi') +
+            (par.pacco > 1 ? ' · ' + plurale(s.pacchi, 'pacco', 'pacchi') : '');
+          if (vi > 0) riga += ' <span class="piu">(' + (s.tavole > base.tavole ? plurale(s.tavole - base.tavole, 'tavola', 'tavole') : metri(s.legno - base.legno)) + ' in più, ' +
+            plurale(base.schemi - s.schemi, 'schema', 'schemi') + ' in meno' + (s.recupero > base.recupero ? ', ' + metri(s.recupero - base.recupero) + ' tornano come sfridi recuperabili' : '') + ')</span>';
+          h += '<label><input type="radio" name="var-' + gi + '" data-g="' + gi + '" value="' + vi + '"' + (g.scelta === vi ? ' checked' : '') + '> <span>' + riga + '</span></label>';
+        });
+        h += '</div>';
+      }
+      h += '<p class="riga-riepilogo">' + st.perLung.map(function (x) { return plurale(x.n, 'tavola', 'tavole') + ' da ' + x.lung + ' mm'; }).join(' + ') +
+        ' · ' + metri(st.legno) + ' · spreco ' + nf(100 * st.scarto / st.legno, 1) + ' %' +
+        ' · ' + plurale(st.schemi, 'schema', 'schemi') + (par.pacco > 1 ? ' · ' + plurale(st.pacchi, 'pacco', 'pacchi') : '') + '</p>';
+      const m = testoMinimo(g, st, par);
+      if (m.t) h += '<p class="minimo' + (m.ok ? ' ok' : '') + '">' + esc(m.t) + '</p>';
+      if (g.mancanti.length) {
+        h += '<div class="mancanti"><b>Tavole insufficienti:</b> con le tavole indicate restano da tagliare ' +
+          g.mancanti.map(function (x) { return x.qta + ' × ' + x.lung + (x.progetto ? ' (pr. ' + esc(x.progetto) + ')' : ''); }).join(', ') + '. Aggiungi tavole nel riquadro 1 e ricalcola.</div>';
+      }
+      const lg = [];
+      v.schemi.forEach(function (s, si) { const nome = L.lettera(n++); lg.push(nome); h += schemaHtml(s, nome, gi, si, par, colore); });
+      lettere.push(lg);
+      if (st.recuperi.length) h += '<p class="recuperi"><b>Sfridi da recuperare:</b> ' + st.recuperi.map(function (r) { return r.n + ' × ' + r.lung + ' mm'; }).join(', ') + ' (in tutto ' + metri(st.recupero) + ').</p>';
+      h += '</div>';
+    });
+
+    // pulsanti in fondo
+    let fatti = 0;
+    p.gruppi.forEach(function (g) { g.varianti[g.scelta].schemi.forEach(function (s) { s.pacchi.forEach(function (pk) { if (pk.fatto) fatti++; }); }); });
+    h += '<div class="fondo-piano solo-schermo"><button class="btn btn-primario" type="button" data-fai="stampa">Stampa il piano</button>' +
+      '<label class="spunta"><input type="checkbox" data-fai="compatta"' + (stato.stampaCompatta ? ' checked' : '') + '> Stampa compatta (senza i disegni: più schemi per foglio)</label>' +
+      (fatti ? '<button class="btn" type="button" data-fai="togli">Togli dalla lista i pezzi già tagliati (' + plurale(fatti, par.pacco > 1 ? 'pacco' : 'tavola', par.pacco > 1 ? 'pacchi' : 'tavole') + ')</button>' : '') + '</div>';
+
+    // tabella di controllo: ogni progetto riceve tutti i suoi pezzi?
+    h += '<details class="controllo"><summary>Controllo: pezzi per progetto</summary>';
+    p.gruppi.forEach(function (g, gi) {
+      const v = g.varianti[g.scelta], dati = new Map();
+      v.schemi.forEach(function (s, si) {
+        s.pacchi.forEach(function (pk) {
+          s.tagli.forEach(function (lung, k) {
+            pk.dest[k].forEach(function (d) {
+              const key = d.p + '\u0001' + lung;
+              let e = dati.get(key);
+              if (!e) { e = { n: 0, schemi: [] }; dati.set(key, e); }
+              e.n += d.n;
+              if (e.schemi.indexOf(lettere[gi][si]) < 0) e.schemi.push(lettere[gi][si]);
+            });
+          });
+        });
+      });
+      h += '<table class="controllo"><thead><tr><th class="t" colspan="5">' + esc(L.nomeGruppo(g)) + '</th></tr><tr><th class="t">Progetto</th><th>Lunghezza</th><th>Richiesti</th><th>Nel piano</th><th class="t">Schemi</th></tr></thead><tbody>';
+      g.richiesta.forEach(function (r) {
+        const e = dati.get(r.progetto + '\u0001' + r.lung) || { n: 0, schemi: [] };
+        h += '<tr><td class="t">' + esc(r.progetto || '—') + '</td><td>' + r.lung + '</td><td>' + r.qta + '</td><td>' + e.n + (e.n === r.qta ? ' ✔' : ' ✘') + '</td><td class="t">' + e.schemi.join(', ') + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    });
+    h += '</details>';
+    return h;
+  }
+
+  /* ====================== file: salva, apri, stampa ====================== */
+  function salvaSuFile() {
+    const testo = JSON.stringify(stato, null, 1);
+    const oggi = new Date();
+    const nome = 'tagli_' + oggi.getFullYear() + '-' + String(oggi.getMonth() + 1).padStart(2, '0') + '-' + String(oggi.getDate()).padStart(2, '0') + '.json';
+    function scarica() {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([testo], { type: 'application/json' }));
+      a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      avvisa('Lista salvata nel file ' + nome + ' (cartella dei download).');
+    }
+    if (window.showSaveFilePicker) {            // il browser lascia scegliere la cartella (per esempio la chiavetta)
+      window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'Lista di Piano Tagli', accept: { 'application/json': ['.json'] } }] })
+        .then(function (h) { return h.createWritable().then(function (w) { return w.write(testo).then(function () { return w.close(); }); }).then(function () { avvisa('Lista salvata nel file ' + h.name + '.'); }); })
+        .catch(function (e) { if (!e || e.name !== 'AbortError') scarica(); });
+    } else if (navigator.canShare && window.matchMedia && matchMedia('(pointer: coarse)').matches) {
+      let file = null;                         // telefono: si apre il menu "Condividi"
+      try { file = new File([testo], nome, { type: 'application/json' }); } catch (e) { file = null; }
+      if (file && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Lista Piano Tagli' })
+          .then(function () { avvisa('Lista pronta: ' + nome + '.'); })
+          .catch(function (e) { if (!e || e.name !== 'AbortError') scarica(); });
+      } else scarica();
+    } else scarica();
+  }
+  function apriDaFile(file) {
+    const lettore = new FileReader();
+    lettore.onload = function () {
+      try {
+        adotta(JSON.parse(String(lettore.result)));
+        disegnaTutto(); ricorda();
+        avvisa('Lista caricata: ' + plurale(stato.pezzi.length, 'riga', 'righe') + '.');
+      } catch (e) { avvisa('Questo file non è una lista di Piano Tagli.', true); }
+    };
+    lettore.readAsText(file);
+  }
+  function disegnaTutto() { disegnaParametri(); disegnaTavole(); disegnaPezzi(); disegnaPiano(); $('rap-progetto').value = stato.rapido.progetto; $('rap-sezione').value = stato.rapido.sezione; $('rap-ht').checked = stato.rapido.ht; }
+
+  /* ====================== collegamento dei comandi ====================== */
+  Object.keys(CAMPI).forEach(function (id) { $(id).addEventListener('input', function () { leggiParametro(id); }); $(id).addEventListener('blur', disegnaParametri); });
+  $('par-tempo').addEventListener('change', function () { stato.parametri.tempo = Number($('par-tempo').value) || 3; modificato(false); });
+  document.querySelectorAll('[data-rifilo]').forEach(function (b) {
+    b.addEventListener('click', function () { stato.parametri.rifilo = Number(b.dataset.rifilo); disegnaParametri(); modificato(); });
+  });
+
+  $('corpo-tavole').addEventListener('input', function (e) {
+    const tr = e.target.closest('tr'), c = e.target.dataset.c;
+    if (!tr || !c) return;
+    stato.tavole[Number(tr.dataset.i)][c] = e.target.value;
+    modificato();
+  });
+  $('corpo-tavole').addEventListener('click', function (e) {
+    if (e.target.dataset.via !== 'tavola') return;
+    stato.tavole.splice(Number(e.target.closest('tr').dataset.i), 1);
+    if (!stato.tavole.length) stato.tavole.push({ lung: '', qta: '', sezione: '', tipo: 'tutti' });
+    disegnaTavole(); modificato();
+  });
+  $('btn-piu-tavola').addEventListener('click', function () {
+    stato.tavole.push({ lung: '', qta: '', sezione: '', tipo: 'tutti' });
+    disegnaTavole(); modificato();
+    const u = document.querySelector('#corpo-tavole tr:last-child input');
+    if (u) u.focus();
+  });
+
+  $('corpo-pezzi').addEventListener('input', function (e) {
+    const tr = e.target.closest('tr'), c = e.target.dataset.c;
+    if (!tr || !c) return;
+    const r = stato.pezzi[Number(tr.dataset.i)];
+    r[c] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    const dif = L.difettoRiga(r, stato.parametri);
+    tr.className = dif ? 'errata' : '';
+    tr.title = dif;
+    aggiornaTotali(); modificato();
+  });
+  $('corpo-pezzi').addEventListener('change', aggiornaSuggerimenti);
+  $('corpo-pezzi').addEventListener('click', function (e) {
+    if (e.target.dataset.via !== 'pezzo') return;
+    stato.pezzi.splice(Number(e.target.closest('tr').dataset.i), 1);
+    disegnaPezzi(); modificato();
+  });
+  $('corpo-pezzi').addEventListener('keydown', function (e) {       // Invio = riga sotto (e riga nuova in fondo)
+    if (e.key !== 'Enter') return;
+    const tr = e.target.closest('tr');
+    let c = e.target.dataset.c;
+    if (!tr || !c) return;
+    e.preventDefault();
+    const i = Number(tr.dataset.i);
+    if (i === stato.pezzi.length - 1) {
+      const u = stato.pezzi[i];
+      stato.pezzi.push({ progetto: u.progetto, sezione: u.sezione, ht: u.ht, qta: '', lung: '' });
+      disegnaPezzi(); modificato();
+      c = 'qta';
+    }
+    const dopo = document.querySelector('#corpo-pezzi tr[data-i="' + (i + 1) + '"] [data-c="' + c + '"]');
+    if (dopo) { dopo.focus(); if (dopo.select) dopo.select(); }
+  });
+  $('corpo-pezzi').addEventListener('paste', function (e) {         // più celle incollate direttamente nella tabella
+    const testo = (e.clipboardData || window.clipboardData).getData('text');
+    if (!testo || !/[\t\n]/.test(testo.trim())) return;
+    e.preventDefault();
+    const tr = e.target.closest('tr'), i = tr ? Number(tr.dataset.i) : stato.pezzi.length - 1;
+    const base = stato.pezzi[i] || stato.rapido;
+    const ris = L.analizzaTesto(testo, { progetto: L.testo(base.progetto), sezione: L.normSezione(base.sezione), ht: !!base.ht }, false);
+    if (!ris.righe.length) { avvisa('Non ho riconosciuto righe da incollare: usa «Incolla da Excel…».', true); return; }
+    const vuota = stato.pezzi[i] && L.testo(stato.pezzi[i].qta) === '' && L.testo(stato.pezzi[i].lung) === '';
+    Array.prototype.splice.apply(stato.pezzi, [vuota ? i : i + 1, vuota ? 1 : 0].concat(ris.righe));
+    disegnaPezzi(); modificato();
+    avvisa('Incollate ' + plurale(ris.righe.length, 'riga', 'righe') + '.');
+  });
+  $('btn-piu-riga').addEventListener('click', function () {
+    const u = stato.pezzi[stato.pezzi.length - 1] || stato.rapido;
+    stato.pezzi.push({ progetto: u.progetto, sezione: u.sezione, ht: !!u.ht, qta: '', lung: '' });
+    disegnaPezzi(); modificato(false);
+    const q = document.querySelector('#corpo-pezzi tr:last-child [data-c="' + (u.progetto ? 'qta' : 'progetto') + '"]');
+    if (q) q.focus();
+  });
+  $('btn-rapido').addEventListener('click', aggiungiRapido);
+  ['rap-progetto', 'rap-sezione', 'rap-pezzi'].forEach(function (id) {
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if (id === 'rap-pezzi' || $('rap-pezzi').value.trim()) aggiungiRapido(); else $('rap-pezzi').focus(); } });
+  });
+  $('btn-esempio').addEventListener('click', function () {
+    stato.pezzi = L.esempio();
+    disegnaPezzi(); modificato();
+    const nomi = {};
+    let pz = 0;
+    stato.pezzi.forEach(function (r) { pz += r.qta; nomi[r.progetto] = 1; });
+    avvisa('Esempio caricato: ' + plurale(Object.keys(nomi).length, 'progetto', 'progetti') + ', ' + plurale(pz, 'pezzo', 'pezzi') + '. Ora premi CALCOLA.');
+  });
+
+  $('btn-incolla').addEventListener('click', apriIncolla);
+  $('inc-annulla').addEventListener('click', chiudiIncolla);
+  $('inc-ok').addEventListener('click', confermaIncolla);
+  ['inc-testo', 'inc-progetto', 'inc-sezione'].forEach(function (id) { $(id).addEventListener('input', anteprimaIncolla); });
+  ['inc-ht', 'inc-scambia'].forEach(function (id) { $(id).addEventListener('change', anteprimaIncolla); });
+  $('finestra-incolla').addEventListener('click', function (e) { if (e.target === $('finestra-incolla')) chiudiIncolla(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('finestra-incolla').hidden) chiudiIncolla(); });
+
+  $('btn-calcola').addEventListener('click', calcola);
+
+  $('piano').addEventListener('change', function (e) {
+    const t = e.target, p = stato.piano;
+    if (!p) return;
+    if (t.dataset.fai === 'compatta') {                                // stampa con o senza i disegni delle tavole
+      stato.stampaCompatta = t.checked;
+      $('piano').classList.toggle('compatta', t.checked);
+      ricorda();
+    } else if (t.type === 'checkbox' && t.dataset.p !== undefined) {  // pacco fatto / non fatto
+      const g = p.gruppi[Number(t.dataset.g)];
+      g.varianti[g.scelta].schemi[Number(t.dataset.s)].pacchi[Number(t.dataset.p)].fatto = t.checked;
+      ricorda(); disegnaPiano();
+      const stessa = document.querySelector('#piano input[data-g="' + t.dataset.g + '"][data-s="' + t.dataset.s + '"][data-p="' + t.dataset.p + '"]');
+      if (stessa) stessa.focus();
+    } else if (t.type === 'radio' && t.dataset.g !== undefined) {     // scelta fra piano con meno legno e piano più semplice
+      const g = p.gruppi[Number(t.dataset.g)];
+      const spuntati = g.varianti[g.scelta].schemi.some(function (s) { return s.pacchi.some(function (pk) { return pk.fatto; }); });
+      if (spuntati && !confirm('In questo piano ci sono pacchi già spuntati. Cambiando piano le spunte di questa sezione si perdono. Continuo?')) { disegnaPiano(); return; }
+      g.varianti[g.scelta].schemi.forEach(function (s) { s.pacchi.forEach(function (pk) { pk.fatto = false; }); });
+      g.scelta = Number(t.value);
+      ricorda(); disegnaPiano();
+    }
+  });
+  $('piano').addEventListener('click', function (e) {
+    const fai = e.target.dataset.fai;
+    if (fai === 'stampa') window.print();
+    if (fai === 'togli') {
+      if (!confirm('Tolgo dalla lista i pezzi dei pacchi spuntati?\n\nIl piano attuale viene cancellato: poi imposta le tavole di oggi e premi di nuovo CALCOLA per i pezzi rimasti.')) return;
+      const tolti = L.togliTagliati(stato);
+      disegnaPezzi(); disegnaPiano(); ricorda();
+      avvisa('Tolti ' + plurale(tolti, 'pezzo già tagliato', 'pezzi già tagliati') + '. Restano ' + plurale(stato.pezzi.length, 'riga', 'righe') + ' da tagliare.');
+      $('sez-pezzi').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  $('btn-nuova').addEventListener('click', function () {
+    if (stato.pezzi.length && !confirm('Svuoto la lista dei pezzi e cancello il piano?\n(Tavole e impostazioni della macchina restano.)')) return;
+    stato.pezzi = []; stato.piano = null; stato.pianoVecchio = false;
+    disegnaPezzi(); disegnaPiano(); ricorda();
+    avvisa('Lista nuova.');
+  });
+  $('btn-salva').addEventListener('click', salvaSuFile);
+  $('btn-apri').addEventListener('click', function () { $('file-apri').value = ''; $('file-apri').click(); });
+  $('file-apri').addEventListener('change', function () { if ($('file-apri').files[0]) apriDaFile($('file-apri').files[0]); });
+  $('btn-stampa').addEventListener('click', function () { if (stato.piano) window.print(); else avvisa('Prima premi CALCOLA: non c\'è ancora un piano da stampare.', true); });
+
+  /* ====================== avvio ====================== */
+  if (!PROVA) {
+    try { const salvato = localStorage.getItem(CHIAVE); if (salvato) adotta(JSON.parse(salvato)); } catch (e) { stato = statoNuovo(); }
+  } else stato.pezzi = L.esempio();
+  disegnaTutto();
+  if (PROVA) calcola();
+
+  /* ====================== app sul telefono ====================== */
+  /* Solo nella versione pubblicata sul sito (quella con il "manifest"): la pagina si conserva
+     sul telefono per funzionare anche senza internet, e si può installare come un'app. */
+  const sulSito = !!document.querySelector('link[rel="manifest"]') && /^(https:|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(location.href);
+  if (sulSito && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () { /* senza: funziona lo stesso, ma solo con internet */ });
+  const giaInstallata = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  let richiesta = null;
+  function invito(testo, conPulsante) {
+    try { if (localStorage.getItem('pianoTagli.invitoChiuso')) return; } catch (e) { /* senza memoria si mostra lo stesso */ }
+    $('invito-testo').innerHTML = testo;
+    $('btn-installa').hidden = !conPulsante;
+    $('invito-app').hidden = false;
+  }
+  if (sulSito && !giaInstallata) {
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      richiesta = e;
+      invito('<b>Piano Tagli si può installare come un\'app</b>: avrà la sua icona e funzionerà anche senza internet.', true);
+    });
+    const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (iPhone) invito('Per installarla sull\'iPhone: in Safari tocca <b>Condividi</b> (il quadrato con la freccia in su) e poi <b>«Aggiungi alla schermata Home»</b>.', false);
+  }
+  $('btn-installa').addEventListener('click', function () {
+    if (!richiesta) return;
+    richiesta.prompt();
+    richiesta.userChoice.then(function () { richiesta = null; $('invito-app').hidden = true; });
+  });
+  $('btn-invito-chiudi').addEventListener('click', function () {
+    $('invito-app').hidden = true;
+    try { localStorage.setItem('pianoTagli.invitoChiuso', '1'); } catch (e) { /* pazienza */ }
+  });
+  window.addEventListener('appinstalled', function () { $('invito-app').hidden = true; });
+})();
+</script>
+</body>
+</html>
