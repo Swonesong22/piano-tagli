@@ -87,6 +87,9 @@ tr.errata input.num { border-color: var(--rosso); background: #fff4f2; }
 .rapido { display: grid; grid-template-columns: 120px 130px auto minmax(0, 1fr) auto; gap: 10px; align-items: end; background: #faf6ec; border: 1px solid var(--bordo); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
 .rapido label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 3px; }
 .rapido .ht { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; font-weight: 600; }
+.rapido-esito { grid-column: 1 / -1; font-weight: 600; font-size: .95rem; color: var(--verde-scuro); }
+.rapido-esito.errore { color: var(--rosso); }
+.rapido-esito:empty { display: none; }
 .sotto-tabella { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
 .totali { color: var(--tenue); font-size: .95rem; }
 .lista-vuota { color: var(--tenue); padding: 14px 6px; }
@@ -347,6 +350,7 @@ table.controllo td.t, table.controllo th.t { text-align: left; }
       <label class="ht"><input type="checkbox" id="rap-ht"> HT</label>
       <div class="largo"><label for="rap-pezzi">Pezzi: quantità x lunghezza, separati da virgola</label><input type="text" id="rap-pezzi" placeholder="es. 14x2400, 3x760, 10x1200"></div>
       <button class="btn btn-primario" id="btn-rapido" type="button">Aggiungi</button>
+      <div class="rapido-esito" id="rap-esito" role="status" aria-live="polite"></div>
     </div>
     <div class="scorri">
       <table class="griglia" id="tab-pezzi">
@@ -1509,9 +1513,9 @@ function creaLogica() {
   /* Numeri scritti all'italiana: "1.200", "1200,5", "1 200 mm" */
   function numero(v) {
     if (typeof v === 'number') return v;
-    let s = String(v == null ? '' : v).trim().replace(/\s+/g, '').replace(/mm$/i, '');
+    let s = String(v == null ? '' : v).trim().replace(/\s*mm$/i, '');
     if (s === '') return NaN;
-    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '');
+    if (/^\d{1,3}(?:[. \u00a0\u202f]\d{3})+(,\d+)?$/.test(s)) s = s.replace(/[. \u00a0\u202f]/g, '');   // migliaia: 1.336 · 1 336
     s = s.replace(',', '.');
     return /^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
   }
@@ -1538,64 +1542,90 @@ function creaLogica() {
 
   /* ------------------------------------------------------------------
      Lettura di righe incollate o scritte a mano.
-     - celle di Excel (separate da tabulazioni o punto e virgola);
-     - testo libero: "Progetto 101: 14x2400, 3x760"
+     - celle di Excel (separate da tabulazioni; con il punto e virgola solo
+       se sono più righe, come nei file CSV);
+     - testo libero: "Progetto 101: 14x2400, 3x760". Virgola, punto e virgola
+       e spazi separano i pezzi: la virgola NON fa da virgola dei decimali
+       (le lunghezze sono millimetri interi; vale il punto delle migliaia, 1.336).
+     Restituisce anche "nonCapiti": i pezzi di testo che non si sono potuti
+     leggere, così non si perde niente in silenzio.
      predef = { progetto, sezione, ht } usati quando mancano nel testo.
      ------------------------------------------------------------------ */
+  /* Un pezzo scritto come "12x1200" (anche 12 X 1200, 12×1200, 12*1200, 12 pz x 1200) */
+  const RE_PEZZO = '(\\d+)\\s*(?:pz\\.?|pezzi)?\\s*[xX×*]\\s*(\\d{1,3}(?:\\.\\d{3})+|\\d+)';
+  /* La riga è un elenco di pezzi (eventualmente con "Progetto 9:" davanti)? */
+  function listaDiPezzi(linea) {
+    const corpo = linea.replace(/^\s*[^:=]{1,40}[:=]/, '');
+    return new RegExp('^\\s*(?:' + RE_PEZZO + '\\s*(?:mm)?\\s*[,;]?\\s*)+$', 'i').test(corpo);
+  }
   function analizzaTesto(grezzo, predef, scambia) {
-    const righe = [];
+    const righe = [], nonCapiti = [];
     let scartate = 0;
     const linee = String(grezzo || '').replace(/\r/g, '').split('\n').filter(function (l) { return l.trim() !== ''; });
-    function metti(progetto, sezione, ht, q, l) {
-      if (scambia) { const t = q; q = l; l = t; }
+    function metti(progetto, sezione, ht, q, l, girate) {
+      if (girate) { const x = q; q = l; l = x; }
       const qn = numero(q), ln = numero(l);
-      if (qn > 0 && ln > 0) {
-        righe.push({ progetto: testo(progetto), sezione: normSezione(sezione), ht: !!ht, qta: Math.round(qn), lung: Math.round(ln) });
+      if (qn > 0 && Math.round(qn) === qn && ln > 0) {
+        righe.push({ progetto: testo(progetto), sezione: normSezione(sezione), ht: !!ht, qta: qn, lung: Math.round(ln) });
         return true;
       }
       return false;
     }
     const conTab = linee.some(function (l) { return l.indexOf('\t') >= 0; });
-    const conPV = !conTab && linee.length > 0 && linee.every(function (l) { return l.indexOf(';') >= 0; });
+    const conPV = !conTab && linee.length > 1 && !linee.some(listaDiPezzi) &&
+      linee.every(function (l) { return l.indexOf(';') >= 0; });
     if (conTab || conPV) {
       const celle = linee.map(function (l) { return l.split(conTab ? '\t' : ';').map(function (c) { return c.trim(); }); });
       let nCol = 0;
       celle.forEach(function (r) { let u = r.length; while (u > 0 && r[u - 1] === '') u--; if (u > nCol) nCol = u; });
-      celle.forEach(function (r) {
+      celle.forEach(function (r, k) {
         let ok;
-        if (nCol >= 5) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, veroHT(r[2]), r[3], r[4]);
-        else if (nCol === 4) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, predef.ht, r[2], r[3]);
-        else if (nCol === 3) ok = metti(r[0] || predef.progetto, predef.sezione, predef.ht, r[1], r[2]);
-        else ok = metti(predef.progetto, predef.sezione, predef.ht, r[0], r[1]);
-        if (!ok) scartate++;            // intestazioni o righe incomplete
+        if (nCol >= 5) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, veroHT(r[2]), r[3], r[4], scambia);
+        else if (nCol === 4) ok = metti(r[0] || predef.progetto, r[1] || predef.sezione, predef.ht, r[2], r[3], scambia);
+        else if (nCol === 3) ok = metti(r[0] || predef.progetto, predef.sezione, predef.ht, r[1], r[2], scambia);
+        else ok = metti(predef.progetto, predef.sezione, predef.ht, r[0], r[1], scambia);
+        if (!ok) {
+          scartate++;                    // intestazioni (senza cifre) o righe da correggere
+          if (/\d/.test(linee[k])) nonCapiti.push(linee[k]);
+        }
       });
     } else {
       let progCorrente = predef.progetto, htCorrente = predef.ht;
       linee.forEach(function (linea) {
-        let resto = linea, progetto = progCorrente, ht = htCorrente;
+        let resto = linea, progetto = progCorrente, ht = htCorrente, etichetta = '';
         const conDuePunti = /^\s*(?:prog(?:etto)?\.?\s*)?([^:=]{1,40}?)\s*[:=]/i.exec(linea);
         const soloTitolo = /^\s*prog(?:etto)?\.?\s+(.{1,40})$/i.exec(linea);
         let nome = null;
         if (conDuePunti) { nome = conDuePunti[1]; resto = linea.slice(conDuePunti[0].length); }
-        else if (soloTitolo && !/\d\s*[xX×*]\s*\d/.test(linea)) { nome = soloTitolo[1]; resto = ''; }
+        else if (soloTitolo && !new RegExp(RE_PEZZO, 'i').test(linea)) { nome = soloTitolo[1]; resto = ''; }
         if (nome !== null) {
           ht = predef.ht;
           if (/\bHT\b/i.test(nome)) { ht = true; nome = nome.replace(/\bHT\b/ig, ''); }
           nome = nome.trim();
           if (nome) progetto = nome;
           progCorrente = progetto; htCorrente = ht;
+          etichetta = progetto + (ht ? ' HT' : '') + ': ';
           if (resto.trim() === '') return;
         }
-        let trovate = 0, m;
-        const re = /(\d+)\s*[xX×*]\s*(\d+(?:[.,]\d+)?)/g;
-        while ((m = re.exec(resto)) !== null) if (metti(progetto, predef.sezione, ht, m[1], m[2])) trovate++;
-        if (!trovate) {
-          const nums = resto.trim().split(/[\s,;]+/);
-          if (!(nums.length === 2 && metti(progetto, predef.sezione, ht, nums[0], nums[1]))) scartate++;
-        }
+        resto.split(/[,;]+/).forEach(function (parte) {
+          if (parte.trim() === '') return;
+          const re = new RegExp(RE_PEZZO, 'gi');
+          let m, buoni = 0, avanzo = parte;
+          while ((m = re.exec(parte)) !== null) {
+            if (metti(progetto, predef.sezione, ht, m[1], m[2], false)) { buoni++; avanzo = avanzo.replace(m[0], ' '); }
+          }
+          avanzo = avanzo.replace(/\b(?:mm|pz|pezzi)\b\.?/gi, ' ').trim();
+          if (avanzo === '') return;
+          const n = avanzo.split(/\s+/);
+          // due numeri soli, senza la "x": quantità e lunghezza
+          if (n.length === 2 && /^\d+$/.test(n[0]) && /^(?:\d{1,3}(?:\.\d{3})+|\d+)$/.test(n[1]) && metti(progetto, predef.sezione, ht, n[0], n[1], false)) return;
+          if (buoni && !/\d/.test(avanzo)) return;      // solo parole in più accanto a pezzi buoni
+          scartate++;
+          nonCapiti.push(etichetta + avanzo);
+        });
       });
     }
-    return { righe: righe, scartate: scartate };
+    return { righe: righe, scartate: scartate, nonCapiti: nonCapiti };
   }
 
   /* Perché una riga non può entrare nel calcolo ('' = riga buona o vuota) */
@@ -1996,20 +2026,38 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
   function togliRigheVuote() {
     stato.pezzi = stato.pezzi.filter(function (r) { return !(L.testo(r.qta) === '' && L.testo(r.lung) === ''); });
   }
+  let timerRapido = null;
+  function esitoRapido(testo, errore) {
+    const el = $('rap-esito');
+    el.textContent = testo;
+    el.className = 'rapido-esito' + (errore ? ' errore' : '');
+    clearTimeout(timerRapido);
+    if (testo && !errore) timerRapido = setTimeout(function () { el.textContent = ''; }, 12000);
+  }
   function aggiungiRapido() {
     const pred = { progetto: $('rap-progetto').value.trim(), sezione: L.normSezione($('rap-sezione').value), ht: $('rap-ht').checked };
     const ris = L.analizzaTesto($('rap-pezzi').value, pred, false);
+    const nonCapiti = ris.nonCapiti.map(function (x) { return '«' + x + '»'; }).join(', ');
     if (!ris.righe.length) {
-      avvisa('Scrivi i pezzi come quantità x lunghezza, per esempio: 14x2400, 3x760', true);
+      esitoRapido((nonCapiti ? 'Non ho capito ' + nonCapiti + '. ' : '') + 'Scrivi i pezzi come quantità x lunghezza, per esempio: 14x2400, 3x760', true);
       $('rap-pezzi').focus();
       return;
     }
     togliRigheVuote();
     stato.pezzi = stato.pezzi.concat(ris.righe);
     stato.rapido = pred;
-    $('rap-pezzi').value = '';
     disegnaPezzi(); modificato();
-    avvisa('Aggiunte ' + plurale(ris.righe.length, 'riga', 'righe') + (pred.progetto ? ' al progetto ' + pred.progetto : '') + '.');
+    const capiti = ris.righe.map(function (r) { return r.qta + '×' + r.lung; });
+    const fatto = (capiti.length === 1 ? 'Aggiunta 1 riga' : 'Aggiunte ' + capiti.length + ' righe') + (pred.progetto ? ' al progetto ' + pred.progetto : '') + ': ' +
+      (capiti.length > 12 ? capiti.slice(0, 12).join(', ') + '…' : capiti.join(', ')) + '.';
+    if (ris.nonCapiti.length) {           // quello che non è stato capito resta nella casella, da correggere
+      $('rap-pezzi').value = ris.nonCapiti.join(', ');
+      esitoRapido(fatto + ' Non ho capito ' + nonCapiti + ': è rimasto nella casella, correggilo e premi di nuovo Aggiungi.', true);
+      $('rap-pezzi').focus(); $('rap-pezzi').select();
+      return;
+    }
+    $('rap-pezzi').value = '';
+    esitoRapido(fatto, false);
     $('rap-progetto').focus(); $('rap-progetto').select();
   }
 
@@ -2029,7 +2077,9 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
         const p = ris.righe[0];
         t += ' (' + plurale(pz, 'pezzo', 'pezzi') + '). Prima riga: ' + (p.progetto ? 'progetto ' + p.progetto + ', ' : '') + p.qta + ' pezzi da ' + p.lung + ' mm';
       }
-      if (ris.scartate) t += ' · ' + plurale(ris.scartate, 'riga saltata', 'righe saltate') + ' (intestazioni o incomplete)';
+      if (ris.nonCapiti.length) t += ' · Non capito: ' + ris.nonCapiti.slice(0, 3).map(function (x) { return '«' + x.replace(/\t/g, ' ') + '»'; }).join(', ') +
+        (ris.nonCapiti.length > 3 ? ' e altri ' + (ris.nonCapiti.length - 3) : '');
+      else if (ris.scartate) t += ' · ' + plurale(ris.scartate, 'riga saltata', 'righe saltate') + ' (intestazioni)';
     }
     $('inc-esito').textContent = t;
     return ris;
@@ -2046,7 +2096,16 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     if (!ris.righe.length) { $('inc-esito').textContent = 'Nessuna riga riconosciuta: controlla di aver copiato le colonne di quantità e lunghezza.'; return; }
     togliRigheVuote();
     stato.pezzi = stato.pezzi.concat(ris.righe);
-    disegnaPezzi(); modificato(); chiudiIncolla();
+    disegnaPezzi(); modificato();
+    if (ris.nonCapiti.length) {           // quello che non è stato capito resta nel riquadro, da correggere
+      $('inc-testo').value = ris.nonCapiti.join('\n');
+      anteprimaIncolla();
+      $('inc-esito').textContent = (ris.righe.length === 1 ? 'Aggiunta 1 riga' : 'Aggiunte ' + ris.righe.length + ' righe') +
+        '. Qui sopra è rimasto quello che non ho capito: correggilo e premi di nuovo «Aggiungi alla lista», oppure Annulla.';
+      $('inc-testo').focus();
+      return;
+    }
+    chiudiIncolla();
     avvisa('Aggiunte ' + plurale(ris.righe.length, 'riga', 'righe') + ' da Excel.');
   }
 
@@ -2424,7 +2483,8 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     const vuota = stato.pezzi[i] && L.testo(stato.pezzi[i].qta) === '' && L.testo(stato.pezzi[i].lung) === '';
     Array.prototype.splice.apply(stato.pezzi, [vuota ? i : i + 1, vuota ? 1 : 0].concat(ris.righe));
     disegnaPezzi(); modificato();
-    avvisa('Incollate ' + plurale(ris.righe.length, 'riga', 'righe') + '.');
+    const dubbi = ris.nonCapiti.map(function (x) { return '«' + x.replace(/\t/g, ' ') + '»'; }).join(', ');
+    avvisa('Incollate ' + plurale(ris.righe.length, 'riga', 'righe') + '.' + (dubbi ? ' Non ho capito: ' + dubbi + '.' : ''), !!dubbi, !!dubbi);
   });
   $('btn-piu-riga').addEventListener('click', function () {
     const u = stato.pezzi[stato.pezzi.length - 1] || stato.rapido;
@@ -2434,6 +2494,17 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = { creaLo
     if (q) q.focus();
   });
   $('btn-rapido').addEventListener('click', aggiungiRapido);
+  $('rap-pezzi').addEventListener('paste', function (e) {     // più righe copiate da Excel: si passa alla finestra apposta
+    const testo = (e.clipboardData || window.clipboardData).getData('text');
+    if (!testo || !/[\t\n]/.test(testo.replace(/\s+$/, ''))) return;
+    e.preventDefault();
+    apriIncolla();
+    $('inc-progetto').value = $('rap-progetto').value.trim();
+    $('inc-sezione').value = $('rap-sezione').value;
+    $('inc-ht').checked = $('rap-ht').checked;
+    $('inc-testo').value = testo;
+    anteprimaIncolla();
+  });
   ['rap-progetto', 'rap-sezione', 'rap-pezzi'].forEach(function (id) {
     $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if (id === 'rap-pezzi' || $('rap-pezzi').value.trim()) aggiungiRapido(); else $('rap-pezzi').focus(); } });
   });

@@ -1,7 +1,7 @@
 /* Piano Tagli: conserva l'app sul telefono per usarla anche senza internet.
-   Versione a72af9e674: quando cambia, i telefoni scaricano da soli la versione nuova. */
+   Versione c888f9740e: quando cambia, i telefoni scaricano da soli la versione nuova. */
 'use strict';
-const VERSIONE = 'piano-tagli-a72af9e674';
+const VERSIONE = 'piano-tagli-c888f9740e';
 const FILE = ['./', 'index.html', 'manifest.webmanifest', 'icona-192.png', 'icona-512.png', 'icona-maskable-512.png', 'icona-180.png'];
 
 self.addEventListener('install', function (e) {
